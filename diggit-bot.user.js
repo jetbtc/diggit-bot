@@ -29,7 +29,7 @@
             mines: 13,
             preroll: 0, // TODO
             numRolls: 1,
-            randomRolls: true,
+            randomTiles: true,
             tiles: [20],
             running: false,
             resetOnWin: true,
@@ -59,6 +59,7 @@
         bet: 0,
         halted: false,
         finishStreak: false,
+        prerolling: false,
         gameId: 0,
         init: function() {
 
@@ -76,16 +77,25 @@
         },
         start: function(settings) {
             var s = this.settings;
-
-            $.extend(s, settings);
+            
+            this.set(settings);
 
             this.running = true;
             this.finishStreak = false;
 
-            this.bet = s.initialBet;
+            s.preroll = parseInt(s.preroll) || 0;
+            this.preroll = s.preroll;
+            if(this.preroll > 0) {
+                this.prerolling = true;
+                this.bet = 0;
+            } else {
+                this.prerolling = false;
+                this.bet = s.initialBet;
+            }
+
+            console.log(settings.preroll, s.preroll, this.preroll);
 
             this.setTiles();
-
             this.startGame();
 
             return this;
@@ -134,23 +144,22 @@
                 if(data.status === 1) {
                     this.play(data);
                 } else if(data.status === 3) {
-                    this.lostGame(data);
-                    history.push(data);
-
                     this.sessionStats.losses++;
                     this.sessionStats.lossStreak++;
                     this.sessionStats.winStreak = 0;
 
+                    this.lostGame(data);
                     this.startGame();
-                } else if(data.status === 2) {
-                    this.wonGame(data);
                     history.push(data);
-
+                } else if(data.status === 2) {
                     this.sessionStats.wins++;
                     this.sessionStats.winStreak++;
                     this.sessionStats.lossStreak = 0;
 
+
+                    this.wonGame(data);
                     this.startGame();
+                    history.push(data);
                 }
 
                 if(history.length > this.settings.historyLength) history.shift();
@@ -172,6 +181,14 @@
             var s = this.settings,
                 bet = 0;
 
+            if(this.prerolling) {
+                this.preroll = s.preroll;
+                this.bet = 0;
+                this.finishStreak = false;
+                this.setTiles();
+                return;
+            }
+
             if(s.resetOnWin) {
                 this.endStreak();
             } else {
@@ -191,7 +208,21 @@
         },
         lostGame: function(data) {
             var s = this.settings,
-                bet = 0;
+                bet = false;
+
+            if(this.prerolling) {
+                console.log('lost', this.preroll);
+                this.preroll--;
+                if(this.preroll > 0) {
+                    console.log("Prerolling");
+                    this.bet = 0;
+                    return;
+                } else if(this.preroll === 0) {
+                    console.log("Starting");
+                    this.bet = s.initialBet;
+                    return;
+                }
+            }
 
             if(s.resetOnLoss) {
                 this.endStreak();
@@ -213,12 +244,14 @@
         set: function(key, val) {
             if(typeof key === "object") {
                 $.extend(this.settings, key);
-            } else {
+            } else if(key) {
                 this.settings[key] = val;
             }
+
+            return this;
         },
         setTiles: function() {
-            if(this.settings.randomRolls) {
+            if(this.settings.randomTiles) {
                 this.randomTiles(this.settings.numRolls);
             } else {
                 this.tiles = this.settings.tiles.slice();
@@ -232,7 +265,9 @@
             if(!this.running) {
                 this.finishStreak = false;
             }
+
             this.bet = s.initialBet;
+            
             this.setTiles();
         },
         randomTiles: function(length) {
