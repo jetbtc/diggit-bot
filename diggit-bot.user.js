@@ -6,8 +6,8 @@
 // @grant       none
 // ==/UserScript==
 
+window.jetstuff = window.jetstuff || {};
 (function() {
-
     var status = ["NONE", "IN PROGRESS", "WON", "LOST"],
         gameId = 0,
         gameUpdates = window.jetstuff.gameUpdates = [],
@@ -21,7 +21,7 @@
     $.extend(Bot.prototype, {
         settings: {
             autostart: false, // TODO
-            delay: 200,
+            delay: 600,
             historyLength: 200,
             initialBet: 100,
             maxBet: 1000,
@@ -72,6 +72,8 @@
             } else {
                 console.warn("could not start bot!");
             }
+
+            localStorage.setItem('jetstuff.bot.state', localStorage.getItem('jetstuff.bot.state'), '');
 
             return this;
         },
