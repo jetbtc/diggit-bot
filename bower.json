@@ -1,0 +1,20 @@
+{
+  "name": "diggit-bot",
+  "version": "0.0.1",
+  "authors": [
+    "jet <jetbtc@outlook.com>"
+  ],
+  "main": "diggit-bot.user.js",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "react": "~0.12.2"
+  }
+}
