@@ -36,5 +36,6 @@
     "gulp-react": "~2.0.0"
   },
   "dependencies": {
+    "gulp-riot": "~0.2.3"
   }
 }
