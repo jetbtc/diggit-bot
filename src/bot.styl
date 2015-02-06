@@ -1,0 +1,130 @@
+.jetstuff-bot
+    background transparent url("/img/background.png") repeat scroll
+    border-radius 3px
+    display block
+    text-align left
+    font-size 12px
+    
+    & > div
+        padding 12px
+        margin-bottom 12px
+        background-color rgba(7,120,86,0.5)
+
+    .jetstuff-bothead
+        font-size 14px
+        margin-bottom 12px
+        cursor default
+        
+    .jetstuff-botlogo
+        font-weight 700
+
+    .jetstuff-botdisplays a
+        color lightgreen
+        cursor pointer
+
+        &:hover
+            color lightgreen
+            text-decoration underline
+
+        &.inactive
+            color #077856
+
+    .form-control
+        height 28px
+
+    label
+        margin-bottom 3px
+        position relative
+        display block
+        
+        &.radio-inline
+        &.checkbox-inline
+            display inline-block
+
+    input 
+        font-size 12px
+        background-color #077856
+        border 2px solid #31c471
+        border-radius 2px
+        padding 3px 6px
+        color #ffffff
+        
+        &:disabled
+            opacity 0.8
+            border 2px solid #005e42
+            border-radius 0
+            background-color #077856
+
+
+    input[type="radio"]
+    input[type="checkbox"]
+        line-height normal
+        margin-top 1px
+        
+    .radio, .checkbox
+        margin 0
+
+.jetstuff-botControlInfo
+    margin-bottom 6px
+    
+.jetstuff-bot-status
+    display inline-block
+    margin-top 9px
+    color #90ee90
+
+.jetstuff-bothelp
+    position absolute
+    top 0
+    right 0
+    color #fff
+    font-size 11px
+    cursor pointer
+    display inline-block
+    width 16px
+    height 16px
+    margin-left 12px
+    background rgba(2,2,2,0.2)
+    border-radius 4px
+    text-align center
+    line-height 16px
+    vertical-align text-bottom
+    
+    span
+        display none
+        position absolute
+        top 50%
+        left 100%
+        transform translateX(16px) translateY(-50%)
+        border 1px solid #31c471
+        min-width 150px
+        max-width 240px
+        line-height 1.15
+        padding 6px 12px
+        opacity 0.9
+        border-radius 3px
+        z-index 129
+        text-align left
+        background transparent url("/img/background.png") repeat scroll
+        
+        &:before
+            border 6px solid transparent
+            border-right-color #31c471
+            content ""
+            display block
+            position absolute
+            top 50%
+            left 0
+            transform translateX(-100%) translateY(-50%)
+            
+        &:after
+            content ""
+            display block
+            position absolute
+            top 50%
+            left 0
+            transform translateX(-100%) translateY(-50%)
+            border 4px solid transparent
+            border-right-color #115d41
+        
+    &:hover span
+        display block
