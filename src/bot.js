@@ -19,17 +19,17 @@
             initialBet: 100,
             maxBet: 1000,
             maxStreak: -1, // TODO
-            mines: 13,
-            preroll: 0, // TODO
-            numRolls: 1,
-            randomTiles: true,
-            tiles: [20],
-            running: false,
-            resetOnWin: true,
-            resetOnLoss: false,
-            resetOnMaxbet: true,
-            winMultiplier: 0,
             lossMultiplier: 2,
+            mines: 13,
+            numRolls: 1,
+            preroll: 0, // TODO
+            randomTiles: true,
+            resetOnLoss: false,
+            resetOnMaxbet: false,
+            resetOnWin: true,
+            running: false,
+            tiles: [20],
+            winMultiplier: 0,
         },
         runningStats: {},
         sessionStats: {
