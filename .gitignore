@@ -27,3 +27,6 @@ bower_components
 
 # Users Environment Variables
 .lock-wscript
+
+# Build directory for single components before being concatenated into the userscript
+build
