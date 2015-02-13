@@ -19,17 +19,17 @@
             initialBet: 100,
             maxBet: 1000,
             maxStreak: -1, // TODO
-            lossMultiplier: 2,
             mines: 13,
+            multiplier: 2,
             numRolls: 1,
-            preroll: 0, // TODO
+            prerolls: 0, // TODO
             randomTiles: true,
             resetOnLoss: false,
             resetOnMaxbet: false,
             resetOnWin: true,
+            resetType: 'win',
             running: false,
             tiles: [20],
-            winMultiplier: 0,
         },
         runningStats: {},
         sessionStats: {
@@ -78,17 +78,15 @@
             this.running = true;
             this.finishStreak = false;
 
-            s.preroll = parseInt(s.preroll) || 0;
-            this.preroll = s.preroll;
-            if(this.preroll > 0) {
+            s.prerolls = parseInt(s.prerolls) || 0;
+            this.prerolls = s.prerolls;
+            if(this.prerolls > 0) {
                 this.prerolling = true;
                 this.bet = 0;
             } else {
                 this.prerolling = false;
                 this.bet = s.initialBet;
             }
-
-            console.log(settings.preroll, s.preroll, this.preroll);
 
             this.setTiles();
             this.startGame();
@@ -177,7 +175,7 @@
                 bet = 0;
 
             if(this.prerolling) {
-                this.preroll = s.preroll;
+                this.prerolls = s.prerolls;
                 this.bet = 0;
                 this.finishStreak = false;
                 this.setTiles();
@@ -206,13 +204,13 @@
                 bet = false;
 
             if(this.prerolling) {
-                console.log('lost', this.preroll);
-                this.preroll--;
-                if(this.preroll > 0) {
+                console.log('lost', this.prerolls);
+                this.prerolls--;
+                if(this.prerolls > 0) {
                     console.log("Prerolling");
                     this.bet = 0;
                     return;
-                } else if(this.preroll === 0) {
+                } else if(this.prerolls === 0) {
                     console.log("Starting");
                     this.bet = s.initialBet;
                     return;

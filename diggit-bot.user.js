@@ -29,16 +29,16 @@
             maxBet: 1000,
             maxStreak: -1, // TODO
             mines: 13,
-            preroll: 0, // TODO
+            multiplier: 2,
             numRolls: 1,
+            prerolls: 0, // TODO
             randomTiles: true,
-            tiles: [20],
-            running: false,
-            resetOnWin: true,
             resetOnLoss: false,
-            resetOnMaxbet: true,
-            winMultiplier: 0,
-            lossMultiplier: 2,
+            resetOnMaxbet: false,
+            resetOnWin: true,
+            resetType: 'win',
+            running: false,
+            tiles: [20],
         },
         runningStats: {},
         sessionStats: {
@@ -87,17 +87,15 @@
             this.running = true;
             this.finishStreak = false;
 
-            s.preroll = parseInt(s.preroll) || 0;
-            this.preroll = s.preroll;
-            if(this.preroll > 0) {
+            s.prerolls = parseInt(s.prerolls) || 0;
+            this.prerolls = s.prerolls;
+            if(this.prerolls > 0) {
                 this.prerolling = true;
                 this.bet = 0;
             } else {
                 this.prerolling = false;
                 this.bet = s.initialBet;
             }
-
-            console.log(settings.preroll, s.preroll, this.preroll);
 
             this.setTiles();
             this.startGame();
@@ -186,7 +184,7 @@
                 bet = 0;
 
             if(this.prerolling) {
-                this.preroll = s.preroll;
+                this.prerolls = s.prerolls;
                 this.bet = 0;
                 this.finishStreak = false;
                 this.setTiles();
@@ -215,13 +213,13 @@
                 bet = false;
 
             if(this.prerolling) {
-                console.log('lost', this.preroll);
-                this.preroll--;
-                if(this.preroll > 0) {
+                console.log('lost', this.prerolls);
+                this.prerolls--;
+                if(this.prerolls > 0) {
                     console.log("Prerolling");
                     this.bet = 0;
                     return;
-                } else if(this.preroll === 0) {
+                } else if(this.prerolls === 0) {
                     console.log("Starting");
                     this.bet = s.initialBet;
                     return;
@@ -308,29 +306,29 @@ riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="j
 
 });
 
-riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="row"> <div class="col-md-3"> <div class="form-group"> <label for="jsInitialBet">Start Bet <bot-help text="Your initial bet amount in satoshi."></label> <input name="jsInitialBet" value="" class="form-control" oninput="{ setInitialBet }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMines">Mines</label> <input name="jsMines" value="" class="form-control" oninput="{ setMines }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsPrerolls">Prerolls <bot-help text="Number of 0 bets the bot will have to lose in a row before starting with the initial bet."></label> <input name="jsPrerolls" value="" class="form-control" oninput="{ setPrerolls }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMaxBet">Max Bet <bot-help text="The highest possible bet the bot will make. This is your most important loss control. Use it wisely."></label> <input name="jsMaxBet" value="25600" class="form-control"> </div> </div> </div> <div class="row"> <div class="col-md-4"> <div class="form-group"> <label for="jsTiles">Tiles <bot-help text="Enter a number or the tiles you want to dig. In case of a number, that many random tiles (newly set after each streak, not every game) the bot will attempt to reveal per game. Or enter a chain of tiles to reveal, ie: A5 E3 C1"></label> <input name="jsTiles" value="A5" class="form-control"> </div> </div> <div class="col-md-4"> <div class="form-group clearfix"> <label for="jsResetType">Reset after: <bot-help text="Initial bet in satoshi."></label> <div> <label class="radio-inline"> <input name="jsResetType" value="win" type="radio"> Win </label> <label class="radio-inline"> <input name="jsResetType" value="loss" type="radio"> Loss </label> </div> <div class="checkbox"><label> <input name="jsResetOnMaxbet" value="win" type="checkbox"> Max bet </label></div> </div> </div> <div class="col-md-4"> <div class="form-group"> <label for="jsMultiplier">Multiplier <bot-help text="Initial bet in satoshi."></label> <input name="jsMultiplier" value="2" class="form-control"> </div> </div> </div> </div> <div class="col-md-3"> <div class="jetstuff-botControlInfo"> <strong>Loss potential:</strong><br> 12800000 </div> <div class="jetstuff-botControlInfo"> <strong>Max streak length:</strong><br> 14<br> </div> <div class="jetstuff-botControlInfo"> <strong>Win multiplier:</strong><br> x2.13 </div> </div> </div> <div class="row"> <div class="col-md-2"> <button class="btn btn-green btn-block"><i class="fa fa-stop"></i> Stop</button> </div> <div class="col-md-2"> <button class="btn btn-green btn-block"><i class="fa fa-pause"></i> Pause</button> </div> <div class="col-md-8"> <span class="jetstuff-bot-status">Current Bot Status</span> </div> </div>', function(opts) {
+riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="row"> <div class="col-md-3"> <div class="form-group"> <label for="jsInitialBet">Start Bet <bot-help text="Your initial bet amount in satoshi."></label> <input name="jsInitialBet" value="" class="form-control" oninput="{ setInitialBet }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMines">Mines</label> <input name="jsMines" value="" class="form-control" oninput="{ setMines }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsPrerolls">Prerolls <bot-help text="Number of 0 bets the bot will have to lose in a row before starting with the initial bet."></label> <input name="jsPrerolls" value="" class="form-control" oninput="{ setPrerolls }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMaxBet">Max Bet <bot-help text="The highest possible bet the bot will make. This is your most important loss control. Use it wisely."></label> <input name="jsMaxBet" value="25600" class="form-control" oninput="{ setMaxbet }"> </div> </div> </div> <div class="row"> <div class="col-md-4"> <div class="form-group"> <label for="jsTiles">Tiles <bot-help text="Enter a number or the tiles you want to dig. In case of a number, that many random tiles (newly set after each streak, not every game) the bot will attempt to reveal per game. Or enter a chain of tiles to reveal, ie: A5 E3 C1"></label> <input name="jsTiles" value="A5" class="form-control" oninput="{ setTiles }"> </div> </div> <div class="col-md-4"> <div class="form-group clearfix"> <label for="jsResetType">Reset after: <bot-help text="Initial bet in satoshi."></label> <div> <label class="radio-inline"> <input name="jsResetType" value="win" type="radio" onchange="{ setResetType }"> Win </label> <label class="radio-inline"> <input name="jsResetType" value="loss" type="radio" onchange="{ setResetType }"> Loss </label> </div> <div class="checkbox"><label> <input name="jsResetOnMaxbet" value="win" type="checkbox" onchange="{ setResetOnMaxbet }"> Max bet </label></div> </div> </div> <div class="col-md-4"> <div class="form-group"> <label for="jsMultiplier">Multiplier <bot-help text="Initial bet in satoshi."></label> <input name="jsMultiplier" value="2" class="form-control" oninput="{ setMultiplier }"> </div> </div> </div> </div> <div class="col-md-3"> <div class="jetstuff-botControlInfo"> <strong>Loss potential:</strong><br> 12800000 </div> <div class="jetstuff-botControlInfo"> <strong>Max streak length:</strong><br> 14<br> </div> <div class="jetstuff-botControlInfo"> <strong>Win multiplier:</strong><br> x2.13 </div> </div> </div> <div class="row"> <div class="col-md-2"> <button class="btn btn-green btn-block"><i class="fa fa-stop"></i> Stop</button> </div> <div class="col-md-2"> <button class="btn btn-green btn-block"><i class="fa fa-pause"></i> Pause</button> </div> <div class="col-md-8"> <span class="jetstuff-bot-status">Current Bot Status</span> </div> </div>', function(opts) {
 
     var bot = this.bot = opts.bot,
         s = this.s = bot.settings
 
     this.tobtc = tobtc;
 
-    this.setInitialBet = function(e) {
-        var amount;
-
+    this.getValue = function(value) {
         if(currency == "btc") {
-            amount = e.target.value * satoshis;
+            return value * satoshis;
         } else {
-            amount = e.target.value * bits;
+            return value * bits;
         }
+    }.bind(this);
+
+    this.setInitialBet = function(e) {
+        var amount = this.getValue(e.target.value);
 
         if(isNaN(amount)) {
             console.log('invalid initial bet');
         } else {
             bot.set('initialBet', amount);
         }
-
-        this.update();
     }.bind(this);
 
     this.setMines = function(e) {
@@ -343,24 +341,99 @@ riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="r
         }
     }.bind(this);
     this.setPrerolls = function(e) {
-        var mines = parseInt( e.target.value );
+        var prerolls = parseInt( e.target.value );
 
-        if(isNaN(mines) || mines < 0 || mines > 24) {
+        if(isNaN(prerolls)) {
             console.log('invalid mine number');
         } else {
-            s.mines = mines;
+            s.prerolls = prerolls;
+        }
+    }.bind(this);
+
+    this.setTiles = function(e) {
+        var tileStr = e.target.value.toUpperCase(),
+            numRolls = parseInt(tileStr),
+            tiles = tileStr.match(/\b([A-E][0-5])\b/gi) || []
+            tileIndizes = [ "A1", "B1", "C1", "D1", "E1",
+                            "A2", "B2", "C2", "D2", "E2",
+                            "A3", "B3", "C3", "D3", "E3",
+                            "A4", "B4", "C4", "D4", "E4",
+                            "A5", "B5", "C5", "D5", "E5"];
+
+        if(!isNaN(numRolls)) {
+            bot.set({
+                randomTiles: true,
+                numRolls: numRolls
+            })
+        } else if(tiles.length) {
+
+            for(var i=0; i < tiles.length; i++) {
+                tiles[i] = tileIndizes.indexOf(tiles[i]);
+            }
+
+            console.log(tiles);
+
+            bot.set({
+                randomTiles: false,
+                tiles: tiles
+            })
+        } else {
+            console.log('invalid tiles input');
+        }
+    }.bind(this);
+
+    this.setMaxbet = function(e) {
+        var amount = this.getValue(e.target.value);
+
+        if(isNaN(amount)) {
+            console.log('invalid initial bet');
+        } else {
+            bot.set('maxBet', amount);
+        }
+    }.bind(this);
+    this.setResetType = function(e) {
+        var resetType = $("input[name=jsResetType]:checked", this.root).val();
+
+        if( ['win', 'loss'].indexOf(resetType) > -1) {
+            bot.set('resetType', resetType);
+        } else {
+            console.log('invalid reset type');
+        }
+    }.bind(this);
+    this.setResetOnMaxbet = function(e) {
+        var resetOnMaxbet = e.target.checked;
+
+        bot.set('resetOnMaxbet', resetOnMaxbet);
+    }.bind(this);
+    this.setMultiplier = function(e) {
+        var multiplier = parseFloat( e.target.value );
+
+        if(isNaN(multiplier)) {
+            console.log('invalid multiplier');
+        } else {
+            bot.set('multiplier', multiplier);
         }
     }.bind(this);
 
     this.update_twoway = function() {
         this.jsInitialBet.value = tobtc( s.initialBet, false )
-        this.jsMines.value = s.mines
+        this.jsMaxBet.value = tobtc( s.maxBet, false )
 
-        if(s.randomTiles) {
-            this.jsTiles.value = s.numRolls
-        } else {
+        this.jsMines.value = s.mines
+        this.jsPrerolls.value = s.prerolls
+        this.jsMultiplier.value = s.multiplier
+
+        if(s.tiles instanceof Array) {
             this.jsTiles.value = s.tiles.join(' ')
+        } else {
+            this.jsTiles.value = s.tiles
         }
+
+        this.jsResetOnMaxbet.checked = s.resetOnMaxbet
+
+        $( '[name=jsResetType]', this.root).prop('checked', function() {
+            return this.value === s.resetType;
+        });
     }.bind(this);
 
     $(function() {
@@ -373,6 +446,10 @@ riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="r
     $(".setcurrencybits").click(function() {
         this.update_twoway();
     }.bind(this));
+
+    this.on('update', function() {
+        console.log('update');
+    })
 
 
 });
@@ -396,3 +473,4 @@ window.jetstuff = window.jetstuff || {};
 $('<style>').append('.jetstuff-bot{background:transparent url("/img/background.png") repeat scroll;border-radius:3px;display:block;text-align:left;font-size:12px;}.jetstuff-bot > div{padding:12px;margin-bottom:12px;background-color:rgba(7,120,86,0.5)}.jetstuff-bot .jetstuff-bothead{font-size:14px;margin-bottom:12px;cursor:default}.jetstuff-bot .jetstuff-botlogo{font-weight:700}.jetstuff-bot .jetstuff-botdisplays a{color:#90ee90;cursor:pointer;}.jetstuff-bot .jetstuff-botdisplays a:hover{color:#90ee90;text-decoration:underline}.jetstuff-bot .jetstuff-botdisplays a.inactive{color:#077856}.jetstuff-bot .form-control{height:28px}.jetstuff-bot label{margin-bottom:3px;position:relative;display:block;}.jetstuff-bot label.radio-inline,.jetstuff-bot label.checkbox-inline{display:inline-block}.jetstuff-bot input{font-size:12px;background-color:#077856;border:2px solid #31c471;border-radius:2px;padding:3px 6px;color:#fff;}.jetstuff-bot input:disabled{opacity:.8;border:2px solid #005e42;border-radius:0;background-color:#077856}.jetstuff-bot input[type="radio"],.jetstuff-bot input[type="checkbox"]{line-height:normal;margin-top:1px}.jetstuff-bot .radio,.jetstuff-bot .checkbox{margin:0}.jetstuff-botControlInfo{margin-bottom:6px}.jetstuff-bot-status{display:inline-block;margin-top:9px;color:#90ee90}.jetstuff-bothelp{position:absolute;top:0;right:0;color:#fff;font-size:11px;cursor:pointer;display:inline-block;width:16px;height:16px;margin-left:12px;background:rgba(2,2,2,0.2);border-radius:4px;text-align:center;line-height:16px;vertical-align:text-bottom;}.jetstuff-bothelp span{display:none;position:absolute;top:50%;left:100%;transform:translateX(16px) translateY(-50%);border:1px solid #31c471;min-width:150px;max-width:240px;line-height:1.15;padding:6px 12px;opacity:.9;border-radius:3px;z-index:129;text-align:left;background:transparent url("/img/background.png") repeat scroll;}.jetstuff-bothelp span:before{border:6px solid transparent;border-right-color:#31c471;content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%)}.jetstuff-bothelp span:after{content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%);border:4px solid transparent;border-right-color:#115d41}.jetstuff-bothelp:hover span{display:block}').appendTo(document.head)
 $('<jet-bot>').addClass('jetstuff-bot').prependTo('.mfmainbox')
 jetstuff.botui = riot.mount('jet-bot', {bot: jetstuff.bot})
+console.info('botui built')
