@@ -11,6 +11,10 @@
 </jet-bot>
 
 <bot-controls>
+    <div show={ showLimitInfo } class="jetstuff-botlimit">
+        <span><strong>autosweep</strong> halted. Buy this script to make bets higher than { this.limit }. Check the info for more information. <a href="" onclick={ toggleLimitInfo } >Dismiss</a>
+    </div>
+
     <div class="row">
         <div class="col-md-9">
             <div class="row">
@@ -97,10 +101,19 @@
         </div>
     </div>
 
+    jetstuff.botui = this;
+
     var bot = this.bot = opts.bot,
-        s = this.s = bot.settings
+        s = this.s = bot.settings,
+        tileIndizes = [ 'A1', 'B1', 'C1', 'D1', 'E1',
+                        'A2', 'B2', 'C2', 'D2', 'E2',
+                        'A3', 'B3', 'C3', 'D3', 'E3',
+                        'A4', 'B4', 'C4', 'D4', 'E4',
+                        'A5', 'B5', 'C5', 'D5', 'E5'];
 
     this.tobtc = tobtc;
+    this.limit = 500000;
+    this.showLimitInfo = true;
 
     getValue(value) {
         if(currency == 'btc') {
@@ -140,12 +153,7 @@
     }
 
     getTiles() {
-        var tiles = [],
-            tileIndizes = [ 'A1', 'B1', 'C1', 'D1', 'E1',
-                            'A2', 'B2', 'C2', 'D2', 'E2',
-                            'A3', 'B3', 'C3', 'D3', 'E3',
-                            'A4', 'B4', 'C4', 'D4', 'E4',
-                            'A5', 'B5', 'C5', 'D5', 'E5'];
+        var tiles = [];
 
         if(s.tiles instanceof Array) {
             for(var i = 0; i < s.tiles.length; i++) {
@@ -162,12 +170,7 @@
     setTiles(e) {
         var tileStr = e.target.value.toUpperCase(),
             numRolls = parseInt(tileStr),
-            tiles = tileStr.match(/\b([A-E][0-5])\b/gi) || []
-            tileIndizes = [ 'A1', 'B1', 'C1', 'D1', 'E1',
-                            'A2', 'B2', 'C2', 'D2', 'E2',
-                            'A3', 'B3', 'C3', 'D3', 'E3',
-                            'A4', 'B4', 'C4', 'D4', 'E4',
-                            'A5', 'B5', 'C5', 'D5', 'E5'];
+            tiles = tileStr.match(/\b([A-E][0-5])\b/gi) || [];
 
         if(!isNaN(numRolls)) {
             bot.set({
@@ -224,7 +227,7 @@
         }
     }
 
-    update_twoway() {
+    updateTwoway() {
         this.jsInitialBet.value = tobtc( s.initialBet, false )
         this.jsMaxBet.value = tobtc( s.maxBet, false )
 
@@ -239,17 +242,23 @@
         $( '[name=jsResetType]', this.root).prop('checked', function() {
             return this.value === s.resetType;
         });
+
+        this.limit = tobtc( 500000 )
+    }
+
+    toggleLimitInfo(e, b) {
+        this.showLimitInfo = b || false;
     }
 
     $(function() {
-        this.update_twoway();
+        this.updateTwoway();
     }.bind(this));
     
     $('.setcurrencybtc').click(function() {
-        this.update_twoway();
+        this.updateTwoway();
     }.bind(this));
     $('.setcurrencybits').click(function() {
-        this.update_twoway();
+        this.updateTwoway();
     }.bind(this));
 
     this.on('update', function() {
@@ -275,5 +284,5 @@ window.jetstuff = window.jetstuff || {};
 
 $('<style>').append('{{styles}}').appendTo(document.head)
 $('<jet-bot>').addClass('jetstuff-bot').prependTo('.mfmainbox')
-jetstuff.botui = riot.mount('jet-bot', {bot: jetstuff.bot})
+riot.mount('jet-bot', {bot: jetstuff.bot})
 console.info('botui built')

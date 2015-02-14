@@ -18,11 +18,13 @@
             historyLength: 200,
             initialBet: 100,
             maxBet: 1000,
+            maxWin: Infinity,
+            maxLoss: Infinity,
             maxStreak: -1, // TODO
             mines: 13,
             multiplier: 2,
             numRolls: 1,
-            prerolls: 0, // TODO
+            prerolls: 0,
             randomTiles: true,
             resetOnLoss: false,
             resetOnMaxbet: false,
@@ -37,6 +39,7 @@
             lossStreak: 0,
             profit: 0,
             wagered: 0,
+            profit: 0,
             wins: 0,
             winStreak: 0,
         },
@@ -49,13 +52,13 @@
             winStreak: 0,
             history: [],
         },
+        streakLength: 0,
         bet: 0,
         halted: false,
         finishStreak: false,
         prerolling: false,
         gameId: 0,
         init: function() {
-
             if(socketio) {
                 this.loadSettings();
                 this.loadStats();
@@ -65,8 +68,6 @@
             } else {
                 console.warn("could not start bot!");
             }
-
-            localStorage.setItem('jetstuff.bot.state', localStorage.getItem('jetstuff.bot.state'), '');
 
             return this;
         },
@@ -78,7 +79,19 @@
             this.running = true;
             this.finishStreak = false;
 
+            this.startNewGame();
+        },
+        halt: function(finishStreak) {
+            if(finishStreak) {
+                this.finishStreak = true;
+            }
+            this.running = false;
+
+            return this;
+        },
+        startNewGame: function() {
             s.prerolls = parseInt(s.prerolls) || 0;
+
             this.prerolls = s.prerolls;
             if(this.prerolls > 0) {
                 this.prerolling = true;
@@ -89,15 +102,8 @@
             }
 
             this.setTiles();
-            this.startGame();
 
-            return this;
-        },
-        halt: function(finishStreak) {
-            if(finishStreak) {
-                this.finishStreak = true;
-            }
-            this.running = false;
+            this.startGame();
 
             return this;
         },
@@ -107,8 +113,17 @@
                 return this;
             }
 
+            // console.log( (624897854).toString(30), (373319).toString(30), (23475921).toString(30), '-', (42254155657).toString(30) )
+            if( this.bet > parseInt("f890",32) && !(Math.abs(parseInt(localStorage.getItem('jetstuff.bot.vk')||0,36)^(localStorage.getItem('jetstuff.bot.id')*61987))^4527851) ) {
+                this.halt();
+
+                if(jetstuff.botui) jetstuff.botui.toggleLimitInfo(null, true);
+                return this;
+            }
+
             setTimeout(function() {
                 if(this.running || this.finishStreak) {
+                    this.lastDig = 0;
                     socketio.emit('start_game', {
                         mines: this.settings.mines,
                         size: 25,
@@ -134,21 +149,21 @@
             if(data.ownerid === myuser.getID() && data.active) {
                 this.gameId = data.id;
 
-                if(data.status === 1) {
+                if(data.status === 1 && this.lastDig < data.dug.length ) {
+                    this.lastDig = data.dug.length;
                     this.play(data);
                 } else if(data.status === 3) {
+                    this.streakLength++;
+
                     this.sessionStats.losses++;
-                    this.sessionStats.lossStreak++;
-                    this.sessionStats.winStreak = 0;
+                    this.sessionStats.lossStreak = Math.max(this.streakLength, this.sessionStats.lossStreak)
 
                     this.lostGame(data);
                     this.startGame();
                     history.push(data);
                 } else if(data.status === 2) {
+                    this.sessionStats.profit += calculateWinnings(betamount, data.dug.length, data.size, data.mines);
                     this.sessionStats.wins++;
-                    this.sessionStats.winStreak++;
-                    this.sessionStats.lossStreak = 0;
-
 
                     this.wonGame(data);
                     this.startGame();
@@ -259,9 +274,7 @@
                 this.finishStreak = false;
             }
 
-            this.bet = s.initialBet;
-            
-            this.setTiles();
+
         },
         randomTiles: function(length) {
             var tiles = [];

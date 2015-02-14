@@ -64,67 +64,80 @@
     .radio, .checkbox
         margin 0
 
-.jetstuff-botControlInfo
-    margin-bottom 6px
-    
-.jetstuff-bot-status
-    display inline-block
-    margin-top 9px
-    color #90ee90
+    .jetstuff-botControlInfo
+        margin-bottom 6px
+        
+    .jetstuff-bot-status
+        display inline-block
+        margin-top 9px
+        color #90ee90
 
-.jetstuff-bothelp
-    position absolute
-    top 0
-    right 0
-    color #fff
-    font-size 11px
-    cursor pointer
-    display inline-block
-    width 16px
-    height 16px
-    margin-left 12px
-    background rgba(2,2,2,0.2)
-    border-radius 4px
-    text-align center
-    line-height 16px
-    vertical-align text-bottom
-    
-    span
-        display none
+    .jetstuff-bothelp
         position absolute
-        top 50%
-        left 100%
-        transform translateX(16px) translateY(-50%)
-        border 1px solid #31c471
-        min-width 150px
-        max-width 240px
-        line-height 1.15
-        padding 6px 12px
-        opacity 0.9
-        border-radius 3px
-        z-index 129
-        text-align left
-        background transparent url("/img/background.png") repeat scroll
+        top 0
+        right 0
+        color #fff
+        font-size 11px
+        cursor pointer
+        display inline-block
+        width 16px
+        height 16px
+        margin-left 12px
+        background rgba(2,2,2,0.2)
+        border-radius 4px
+        text-align center
+        line-height 16px
+        vertical-align text-bottom
         
-        &:before
-            border 6px solid transparent
-            border-right-color #31c471
-            content ""
-            display block
+        span
+            display none
             position absolute
             top 50%
-            left 0
-            transform translateX(-100%) translateY(-50%)
+            left 100%
+            transform translateX(16px) translateY(-50%)
+            border 1px solid #31c471
+            min-width 150px
+            max-width 240px
+            line-height 1.15
+            padding 6px 12px
+            opacity 0.9
+            border-radius 3px
+            z-index 129
+            text-align left
+            background transparent url("/img/background.png") repeat scroll
             
-        &:after
-            content ""
+            &:before
+                border 6px solid transparent
+                border-right-color #31c471
+                content ""
+                display block
+                position absolute
+                top 50%
+                left 0
+                transform translateX(-100%) translateY(-50%)
+                
+            &:after
+                content ""
+                display block
+                position absolute
+                top 50%
+                left 0
+                transform translateX(-100%) translateY(-50%)
+                border 4px solid transparent
+                border-right-color #115d41
+            
+        &:hover span
             display block
-            position absolute
-            top 50%
-            left 0
-            transform translateX(-100%) translateY(-50%)
-            border 4px solid transparent
-            border-right-color #115d41
+
+    .jetstuff-botlimit
+        color lightgreen
+        margin-bottom 12px
         
-    &:hover span
-        display block
+    a
+        color lightgreen
+        text-decoration underline
+        
+        &:hover
+            color lightgreen
+
+
