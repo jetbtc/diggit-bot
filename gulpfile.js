@@ -47,6 +47,7 @@ gulp.task('compile-stylus', function() {
 
 gulp.task('build', ['compile-stylus'], function() {
     var ui = gulp.src(paths.ui)
+            .pipe( plumber() )
             .pipe( riot() )
             .pipe(replace('{{styles}}', styles))
             .pipe( gulp.dest('build/') )
@@ -57,13 +58,13 @@ gulp.task('build', ['compile-stylus'], function() {
     var riotlib = gulp.src(paths.riot);
 
     var bot = gulp.src(paths.script)
+            .pipe( plumber() )
             .pipe(replace('{{version}}', pkg.version))
             .pipe( jshint(jshintConfig) )
             .pipe( jshint.reporter('jshint-stylish') )
             .pipe( jshint.reporter('fail') );
 
-    return plumber()
-        .pipe( streamqueue({objectMode: true}, riotlib, bot, ui) )
+    return streamqueue({objectMode: true}, riotlib, bot, ui)
         .pipe( concat(paths.userscript) )
         .pipe( header(fs.readFileSync('src/header.js'), {pkg: pkg}) )
         .pipe( gulp.dest('./')) ;
