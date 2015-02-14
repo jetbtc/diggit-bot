@@ -103,7 +103,7 @@
     this.tobtc = tobtc;
 
     getValue(value) {
-        if(currency == "btc") {
+        if(currency == 'btc') {
             return value * satoshis;
         } else {
             return value * bits;
@@ -139,15 +139,35 @@
         }
     }
 
+    getTiles() {
+        var tiles = [],
+            tileIndizes = [ 'A1', 'B1', 'C1', 'D1', 'E1',
+                            'A2', 'B2', 'C2', 'D2', 'E2',
+                            'A3', 'B3', 'C3', 'D3', 'E3',
+                            'A4', 'B4', 'C4', 'D4', 'E4',
+                            'A5', 'B5', 'C5', 'D5', 'E5'];
+
+        if(s.tiles instanceof Array) {
+            for(var i = 0; i < s.tiles.length; i++) {
+                tiles[i] = tileIndizes[i];
+            }
+            tiles = tiles.join(' ');
+        } else {
+            tiles = parseInt(s.tiles, 10);
+        }
+
+        return tiles;
+    }
+
     setTiles(e) {
         var tileStr = e.target.value.toUpperCase(),
             numRolls = parseInt(tileStr),
             tiles = tileStr.match(/\b([A-E][0-5])\b/gi) || []
-            tileIndizes = [ "A1", "B1", "C1", "D1", "E1",
-                            "A2", "B2", "C2", "D2", "E2",
-                            "A3", "B3", "C3", "D3", "E3",
-                            "A4", "B4", "C4", "D4", "E4",
-                            "A5", "B5", "C5", "D5", "E5"];
+            tileIndizes = [ 'A1', 'B1', 'C1', 'D1', 'E1',
+                            'A2', 'B2', 'C2', 'D2', 'E2',
+                            'A3', 'B3', 'C3', 'D3', 'E3',
+                            'A4', 'B4', 'C4', 'D4', 'E4',
+                            'A5', 'B5', 'C5', 'D5', 'E5'];
 
         if(!isNaN(numRolls)) {
             bot.set({
@@ -181,7 +201,7 @@
         }
     }
     setResetType(e) {
-        var resetType = $("input[name=jsResetType]:checked", this.root).val();
+        var resetType = $('input[name=jsResetType]:checked', this.root).val();
 
         if( ['win', 'loss'].indexOf(resetType) > -1) {
             bot.set('resetType', resetType);
@@ -212,11 +232,7 @@
         this.jsPrerolls.value = s.prerolls
         this.jsMultiplier.value = s.multiplier
 
-        if(s.tiles instanceof Array) {
-            this.jsTiles.value = s.tiles.join(' ')
-        } else {
-            this.jsTiles.value = s.tiles
-        }
+        this.jsTiles = this.getTiles();
 
         this.jsResetOnMaxbet.checked = s.resetOnMaxbet
 
@@ -229,10 +245,10 @@
         this.update_twoway();
     }.bind(this));
     
-    $(".setcurrencybtc").click(function() {
+    $('.setcurrencybtc').click(function() {
         this.update_twoway();
     }.bind(this));
-    $(".setcurrencybits").click(function() {
+    $('.setcurrencybits').click(function() {
         this.update_twoway();
     }.bind(this));
 
