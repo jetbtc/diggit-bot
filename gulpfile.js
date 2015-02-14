@@ -8,6 +8,7 @@ var fs = require('fs'),
     jshint = require('gulp-jshint'),
     header = require('gulp-header'),
     concat = require('gulp-concat'),
+    plumber = require('gulp-plumber'),
     streamqueue = require('streamqueue'),
     riot = require('gulp-riot');
 
@@ -61,7 +62,8 @@ gulp.task('build', ['compile-stylus'], function() {
             .pipe( jshint.reporter('jshint-stylish') )
             .pipe( jshint.reporter('fail') );
 
-    return streamqueue({objectMode: true}, riotlib, bot, ui)
+    return plumber()
+        .pipe( streamqueue({objectMode: true}, riotlib, bot, ui) )
         .pipe( concat(paths.userscript) )
         .pipe( header(fs.readFileSync('src/header.js'), {pkg: pkg}) )
         .pipe( gulp.dest('./')) ;
