@@ -23,30 +23,30 @@
     $.extend(Bot.prototype, {
         settings: {
             autostart: false, // TODO
+            chartLength: 20,
             delay: 600,
             historyLength: 200,
             initialBet: 100,
-            maxBet: 1000,
-            maxWin: Infinity,
             maxLoss: Infinity,
-            maxStreak: -1, // TODO
+            maxStreak: 8,
+            maxWin: Infinity,
             mines: 13,
             multiplier: 2,
             numRolls: 1,
             prerolls: 0,
-            randomTiles: true,
+            randomTiles: false,
             resetOnLoss: false,
-            resetOnMaxbet: false,
+            resetOnMaxStreak: false,
             resetOnWin: true,
             resetType: 'win',
-            running: false,
             tiles: [20],
         },
         runningStats: {},
         sessionStats: {
             losses: 0,
             lossStreak: 0,
-            profit: 0,
+            grossprofit: 0,
+            grossloss: 0,
             wagered: 0,
             wins: 0,
             winStreak: 0,
@@ -58,14 +58,17 @@
             wagered: 0,
             wins: 0,
             winStreak: 0,
-            history: [],
         },
+        history: [],
+        games: [],
+        running: false,
         streakLength: 0,
         bet: 0,
         halted: false,
         finishStreak: false,
         prerolling: false,
         gameId: 0,
+        newGame: true,
         init: function() {
             if(socketio) {
                 this.loadSettings();
@@ -81,13 +84,14 @@
         },
         start: function(settings) {
             var s = this.settings;
-            
+
             this.set(settings);
 
             this.running = true;
             this.finishStreak = false;
+            this.startOver = true;
 
-            this.startNewGame();
+            this.startGame();
         },
         halt: function(finishStreak) {
             if(finishStreak) {
@@ -97,28 +101,31 @@
 
             return this;
         },
-        startNewGame: function() {
-            s.prerolls = parseInt(s.prerolls) || 0;
-
-            this.prerolls = s.prerolls;
-            if(this.prerolls > 0) {
-                this.prerolling = true;
-                this.bet = 0;
-            } else {
-                this.prerolling = false;
-                this.bet = s.initialBet;
-            }
-
-            this.setTiles();
-
-            this.startGame();
-
-            return this;
-        },
         startGame: function() {
+            var s = this.settings;
+
             if(!this.running && !this.finishStreak) {
                 console.log('bot is halted. cannot start game.');
                 return this;
+            }
+
+            if(this.startOver) {
+                this.startOver = false;
+                this.finishStreak = false;
+
+                s.prerolls = Math.max(0, s.prerolls) || 0
+
+                if(s.prerolls > 0) {
+                    this.prerolls = s.prerolls;
+                    this.bet = 0;
+                } else {
+                    this.prerolls = 0;
+                    this.bet = s.initialBet;
+                }
+
+                this.setTiles();
+
+                this.streakLength = 0;
             }
 
             // console.log( (624897854).toString(30), (373319).toString(30), (23475921).toString(30), '-', (42254155657).toString(30) )
@@ -130,55 +137,65 @@
             }
 
             setTimeout(function() {
+                console.log("Starting game", this.prerolls, this.streakLength)
                 if(this.running || this.finishStreak) {
-                    this.lastDig = 0;
+                    this.lastDig = -1;
                     socketio.emit('start_game', {
                         mines: this.settings.mines,
                         size: 25,
                         betamount: this.bet,
                         blockspecs: true
                     });
-                    this.sessionStats.wagered += this.bet;
-
                 } else {
                     console.log('halted. start prevented.');
                 }
-            }.bind(this), this.settings.delay);
+            }.bind(this), s.delay);
 
             return this;
         },
         listen: function(data) {
+            var s = this.settings;
+
             if(!this.running && !this.finishStreak) {
                 return;
             }
 
-            var history = this.stats.history;
-
             if(data.ownerid === myuser.getID() && data.active) {
                 this.gameId = data.id;
 
-                if(data.status === 1 && ) {
+                if(data.status === 1 && this.lastDig < data.dug.length ) {
+                    this.lastDig = data.dug.length;
                     this.play(data);
                 } else if(data.status === 3) {
+                    this.streakLength++;
+
                     this.sessionStats.losses++;
-                    this.sessionStats.lossStreak++;
-                    this.sessionStats.winStreak = 0;
+                    this.sessionStats.lossStreak = Math.max(this.streakLength, this.sessionStats.lossStreak)
+                    this.sessionStats.wagered += data.betamount;
+                    this.sessionStats.grossloss += data.betamount;
 
                     this.lostGame(data);
                     this.startGame();
-                    history.push(data);
+                    this.history.push(data);
                 } else if(data.status === 2) {
+                    this.streakLength = 0;
                     this.sessionStats.wins++;
-                    this.sessionStats.winStreak++;
-                    this.sessionStats.lossStreak = 0;
-
+                    this.sessionStats.grossprofit += calculateWinnings(data.betamount, data.dug.length, data.size, data.mines);
+                    this.sessionStats.wagered += data.betamount;
 
                     this.wonGame(data);
                     this.startGame();
-                    history.push(data);
+                    this.history.push(data);
                 }
 
-                if(history.length > this.settings.historyLength) history.shift();
+                if(this.history.length > s.historyLength) {
+                    this.history = this.history.slice(-s.historyLength)
+                }
+                if(this.games.length > s.chartLength) {
+                    this.games = this.games.slice(-s.chartLength)
+                }
+
+                this.update()
             }
         },
         play: function(data) {
@@ -194,95 +211,47 @@
             return this;
         },
         wonGame: function(data) {
-            var s = this.settings,
-                bet = 0;
-
-            if(this.prerolling) {
-                this.prerolls = s.prerolls;
-                this.bet = 0;
-                this.finishStreak = false;
-                this.setTiles();
-                return;
-            }
-
-            if(s.resetOnWin) {
-                this.endStreak();
-            } else {
-                bet = this.bet * s.winMultiplier;
-                if(bet > s.maxBet) {
-                    if(s.resetOnMaxbet) {
-                        console.log("Bet maxed. Resetting.");
-                        this.endStreak();
-                    } else {
-                        console.log("Bet maxed. Halting.");
-                        this.halt();
-                    }
-                } else {
-                    this.bet = bet;
-                }
-            }
+            this.startOver = true;
         },
         lostGame: function(data) {
-            var s = this.settings,
-                bet = false;
+            var s = this.settings;
 
-            if(this.prerolling) {
-                console.log('lost', this.prerolls);
-                this.prerolls--;
-                if(this.prerolls > 0) {
-                    console.log("Prerolling");
-                    this.bet = 0;
-                    return;
-                } else if(this.prerolls === 0) {
-                    console.log("Starting");
-                    this.bet = s.initialBet;
-                    return;
-                }
+            this.prerolls--;
+
+            if(this.prerolls > 0) {
+                this.bet = 0;
+            } else if(this.prerolls === 0) {
+                this.bet = s.initialBet;
+            } else {
+                this.bet = this.bet * s.multiplier;
             }
 
-            if(s.resetOnLoss) {
-                this.endStreak();
-            } else {
-                bet = this.bet * s.lossMultiplier;
-                if(bet > s.maxBet) {
-                    if(s.resetOnMaxbet) {
-                        console.log("Bet maxed. Resetting.");
-                        this.endStreak();
-                    } else {
-                        console.log("Bet maxed. Halting.");
-                        this.halt();
-                    }
+            if(this.streakLength >= (s.maxStreak+s.prerolls) ) {
+                if(s.resetOnMaxbet) {
+                    console.log("Hit streaklength. Resetting.");
+                    this.endStreak();
                 } else {
-                    this.bet = bet;
+                    console.log("Hit streaklength. Halting.");
+                    this.halt();
                 }
             }
         },
-        set: function(key, val) {
-            if(typeof key === "object") {
-                $.extend(this.settings, key);
-            } else if(key) {
-                this.settings[key] = val;
-            }
+        endStreak: function() {
+            var s = this.settings;
 
-            return this;
+            this.finishStreak = false;
+            this.startOver = true;
         },
         setTiles: function() {
-            if(this.settings.randomTiles) {
+            var s = this.settings;
+
+            if(s.randomTiles) {
                 this.randomTiles(this.settings.numRolls);
             } else {
                 this.tiles = this.settings.tiles.slice();
             }
 
             return this;
-        },
-        endStreak: function() {
-            var s = this.settings;
-
-            if(!this.running) {
-                this.finishStreak = false;
-            }
-
-
         },
         randomTiles: function(length) {
             var tiles = [];
@@ -296,6 +265,20 @@
             this.tiles = tiles;
 
             return this;
+        },
+        set: function(key, val) {
+            if(typeof key === "object") {
+                $.extend(this.settings, key);
+            } else if(key) {
+                this.settings[key] = val;
+            }
+
+            return this;
+        },
+        update: function() {
+            if(jetstuff.botui) {
+                jetstuff.botui.update();
+            }
         },
         loadSettings: function() {},
         saveSettings: function() {},
@@ -314,13 +297,22 @@
     }
 })();
 
-riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="jetstuff-botlogo pull-left">autosweep</div> <div class="pull-right jetstuff-botdisplays">Show: <a>Settings</a> &bull; <a class="inactive">Stats + Chart</a> &bull; <a class="inactive">Controls</a></div> </div> <bot-controls bot="{ opts.bot }"></bot-controls> </div>', function(opts) {
+riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="jetstuff-botlogo pull-left">autosweep</div> <div class="pull-right jetstuff-botdisplays">Show: <a>Settings</a> &bull; <a class="inactive">Stats + Chart</a> &bull; <a class="inactive">Controls</a></div> </div> <div show="{ showLimitInfo }" class="jetstuff-botlimit"> <span><strong>autosweep</strong> halted. Buy this script to make bets higher than { this.limit }. Check the info for more information. <a href="" onclick="{ toggleLimitInfo }" >Dismiss</a> </div> <bot-controls bot="{ opts.bot }" id="jcontrols"></bot-controls> <bot-stats bot="{ opts.bot }" id="jstats"></bot-stats> </div>', function(opts) {
+
+    this.limit = 500000;
+    this.showLimitInfo = false;
+
+    this.toggleLimitInfo = function(e, b) {
+        this.showLimitInfo = b || false;
+
+        if(!e) {
+            this.update();
+        }
+    }.bind(this);
 
 });
 
-riot.tag('bot-controls', '<div show="{ showLimitInfo }" class="jetstuff-botlimit"> <span><strong>autosweep</strong> halted. Buy this script to make bets higher than { this.limit }. Check the info for more information. <a href="" onclick="{ toggleLimitInfo }" >Dismiss</a> </div> <div class="row"> <div class="col-md-9"> <div class="row"> <div class="col-md-3"> <div class="form-group"> <label for="jsInitialBet">Start Bet <bot-help text="Your initial bet amount in satoshi."></label> <input name="jsInitialBet" value="" class="form-control" oninput="{ setInitialBet }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMines">Mines</label> <input name="jsMines" value="" class="form-control" oninput="{ setMines }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsPrerolls">Prerolls <bot-help text="Number of 0 bets the bot will have to lose in a row before starting with the initial bet."></label> <input name="jsPrerolls" value="" class="form-control" oninput="{ setPrerolls }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMaxBet">Max Bet <bot-help text="The highest possible bet the bot will make. This is your most important loss control. Use it wisely."></label> <input name="jsMaxBet" value="25600" class="form-control" oninput="{ setMaxbet }"> </div> </div> </div> <div class="row"> <div class="col-md-4"> <div class="form-group"> <label for="jsTiles">Tiles <bot-help text="Enter a number or the tiles you want to dig. In case of a number, that many random tiles (newly set after each streak, not every game) the bot will attempt to reveal per game. Or enter a chain of tiles to reveal, ie: A5 E3 C1"></label> <input name="jsTiles" value="A5" class="form-control" oninput="{ setTiles }"> </div> </div> <div class="col-md-4"> <div class="form-group clearfix"> <label for="jsResetType">Reset after: <bot-help text="Initial bet in satoshi."></label> <div> <label class="radio-inline"> <input name="jsResetType" value="win" type="radio" onchange="{ setResetType }"> Win </label> <label class="radio-inline"> <input name="jsResetType" value="loss" type="radio" onchange="{ setResetType }"> Loss </label> </div> <div class="checkbox"><label> <input name="jsResetOnMaxbet" value="win" type="checkbox" onchange="{ setResetOnMaxbet }"> Max bet </label></div> </div> </div> <div class="col-md-4"> <div class="form-group"> <label for="jsMultiplier">Multiplier <bot-help text="Initial bet in satoshi."></label> <input name="jsMultiplier" value="2" class="form-control" oninput="{ setMultiplier }"> </div> </div> </div> </div> <div class="col-md-3"> <div class="jetstuff-botControlInfo"> <strong>Loss potential:</strong><br> 12800000 </div> <div class="jetstuff-botControlInfo"> <strong>Max streak length:</strong><br> 14<br> </div> <div class="jetstuff-botControlInfo"> <strong>Win multiplier:</strong><br> x2.13 </div> </div> </div> <div class="row"> <div class="col-md-2"> <button class="btn btn-green btn-block"><i class="fa fa-stop"></i> Stop</button> </div> <div class="col-md-2"> <button class="btn btn-green btn-block"><i class="fa fa-pause"></i> Pause</button> </div> <div class="col-md-8"> <span class="jetstuff-bot-status">Current Bot Status</span> </div> </div>', function(opts) {
-
-    jetstuff.botui = this;
+riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="row"> <div class="col-md-3"> <div class="form-group"> <label for="jsInitialBet">Start Bet <bot-help text="Your initial bet amount in satoshi."></label> <input name="jsInitialBet" value="" class="form-control" oninput="{ setInitialBet }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMines">Mines</label> <input name="jsMines" value="" class="form-control" oninput="{ setMines }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsPrerolls">Prerolls <bot-help text="Number of 0 bets the bot will have to lose in a row before starting with the initial bet."></label> <input name="jsPrerolls" value="" class="form-control" oninput="{ setPrerolls }"> </div> </div> <div class="col-md-3"> <div class="form-group"> <label for="jsMaxBet">Max Streak <bot-help text=""></label> <input name="jsMaxStreak" value="25600" class="form-control" oninput="{ setMaxStreak }"> </div> </div> </div> <div class="row"> <div class="col-md-4"> <div class="form-group"> <label for="jsTiles">Tiles <bot-help text="Enter a number or the tiles you want to dig. In case of a number, that many random tiles (newly set after each streak, not every game) the bot will attempt to reveal per game. Or enter a chain of tiles to reveal, ie: A5 E3 C1"></label> <input name="jsTiles" value="A5" class="form-control" oninput="{ setTiles }"> </div> </div> <div class="col-md-4"> <div class="form-group clearfix"> <label for="jsResetType">Reset after: <bot-help text="Initial bet in satoshi."></label> <div class="checkbox"><label> <input name="jsResetOnMaxbet" value="win" type="checkbox" onchange="{ setResetOnMaxbet }"> Max bet </label></div> </div> </div> <div class="col-md-4"> <div class="form-group"> <label for="jsMultiplier">Multiplier <bot-help text="Initial bet in satoshi."></label> <input name="jsMultiplier" value="2" class="form-control" oninput="{ setMultiplier }"> </div> </div> </div> </div> <div class="col-md-3"> <div class="jetstuff-botControlInfo"> <strong>Cost:</strong><br> { vCost } </div> <div class="jetstuff-botControlInfo"> <strong>Highest bet:</strong><br> { vMaxBet } </div> <div class="jetstuff-botControlInfo"> <strong>Win multiplier:</strong><br> { vMultiplier } </div> </div> </div> <div class="row"> <div class="col-md-2"> <button onclick="{ start }" class="btn btn-green btn-block" show="{ !bot.running }"><i class="fa fa-play"></i> Start</button> <button onclick="{ stop }" class="btn btn-green btn-block" show="{ bot.running }" ><i class="fa fa-stop"></i> Stop</button> </div> <div class="col-md-2"> <button onclick="{ halt }" class="btn btn-warn btn-block" __disabled="{ !bot.running }" ><i class="fa fa-stop"></i> Halt</button> </div> <div class="col-md-8"> <span class="jetstuff-bot-status">Status: { getCurrentStatus() }</span> </div> </div>', function(opts) {
 
     var bot = this.bot = opts.bot,
         s = this.s = bot.settings,
@@ -331,8 +323,7 @@ riot.tag('bot-controls', '<div show="{ showLimitInfo }" class="jetstuff-botlimit
                         'A5', 'B5', 'C5', 'D5', 'E5'];
 
     this.tobtc = tobtc;
-    this.limit = 500000;
-    this.showLimitInfo = true;
+
 
     this.getValue = function(value) {
         if(currency == 'btc') {
@@ -342,46 +333,128 @@ riot.tag('bot-controls', '<div show="{ showLimitInfo }" class="jetstuff-botlimit
         }
     }.bind(this);
 
+    this.start = function() {
+        bot.start()
+    }.bind(this);
+
+    this.stop = function() {
+        bot.halt(true)
+    }.bind(this);
+
+    this.halt = function() {
+        bot.halt()
+    }.bind(this);
+
+    this.calcCost = function() {
+        var total = 0,
+            bet = s.initialBet,
+            multiplier = s.multiplier,
+            maxBet = s.maxBet,
+            i = 0;
+
+        if(multiplier < 1.001) {
+            return '-';
+        }
+
+        do {
+            i++;
+            total += bet
+            bet = Math.floor( bet*multiplier )
+        } while( i < s.maxStreak );
+
+        if(total) {
+            return tobtc(total)
+        } else {
+            return "-"
+        }
+    }.bind(this);
+
+    this.vCost = '-'
+    this.vMaxBet = '-'
+    this.vMultiplier = '-'
+
+    this.calcSettings = function() {
+        var cost = 0,
+            bet = s.initialBet,
+            multiplier = s.multiplier,
+            maxBet = 0,
+            i = 0,
+            digs = s.randomTiles ? s.numRolls : s.tiles.length,
+            multiplier = 1;
+
+
+        if(s.multiplier < 1.001) {
+            this.vCost = '-'
+            this.vMaxBet = '-'
+            this.vStreakLength = '-'
+        } else {
+            while( i++ < s.maxStreak ) {
+                cost += bet
+                maxBet = bet
+                bet *= s.multiplier
+            }
+
+            this.vCost = tobtc( cost )
+            this.vMaxBet = tobtc( maxBet )
+        }
+
+        for(var i = 0; i < digs; i++) {
+            multiplier *= (25 - i) / (25 - i - s.mines) * playeredge
+        }
+
+        this.vMultiplier = 'x' + multiplier.toFixed(3)
+    }.bind(this);
+
+    this.getCurrentStatus = function() {
+        if(bot.running) {
+            return "Running"
+        } else if(!bot.running && bot.finishStreak) {
+            return "Halting - Ending streak"
+        } else {
+            return "Halted"
+        }
+    }.bind(this);
+
     this.setInitialBet = function(e) {
         var amount = this.getValue(e.target.value);
 
         if(isNaN(amount)) {
-            console.log('invalid initial bet');
+            console.log('invalid initial bet')
         } else {
-            bot.set('initialBet', amount);
+            bot.set('initialBet', amount)
         }
     }.bind(this);
 
     this.setMines = function(e) {
-        var mines = parseInt( e.target.value );
+        var mines = parseInt( e.target.value )
 
         if(isNaN(mines) || mines < 0 || mines > 24) {
-            console.log('invalid mine number');
+            console.log('invalid mine number')
         } else {
             s.mines = mines;
         }
     }.bind(this);
     this.setPrerolls = function(e) {
-        var prerolls = parseInt( e.target.value );
+        var prerolls = parseInt( e.target.value )
 
         if(isNaN(prerolls)) {
-            console.log('invalid mine number');
+            console.log('invalid mine number')
         } else {
-            s.prerolls = prerolls;
+            s.prerolls = prerolls
         }
     }.bind(this);
 
     this.getTiles = function() {
         var tiles = [];
 
-        if(s.tiles instanceof Array) {
-            for(var i = 0; i < s.tiles.length; i++) {
-                tiles[i] = tileIndizes[i];
-            }
-            tiles = tiles.join(' ');
-        } else {
-            tiles = parseInt(s.tiles, 10);
+        if(s.randomTiles) {
+            return s.numRolls;
         }
+
+        for(var i = 0; i < s.tiles.length; i++) {
+            tiles[i] = tileIndizes[i];
+        }
+        tiles = tiles.join(' ');
 
         return tiles;
     }.bind(this);
@@ -413,13 +486,13 @@ riot.tag('bot-controls', '<div show="{ showLimitInfo }" class="jetstuff-botlimit
         }
     }.bind(this);
 
-    this.setMaxbet = function(e) {
-        var amount = this.getValue(e.target.value);
+    this.setMaxStreak = function(e) {
+        var streak = parseInt(e.target.value, 10)
 
         if(isNaN(amount)) {
             console.log('invalid initial bet');
         } else {
-            bot.set('maxBet', amount);
+            bot.set('maxStreak', streak);
         }
     }.bind(this);
     this.setResetType = function(e) {
@@ -448,13 +521,13 @@ riot.tag('bot-controls', '<div show="{ showLimitInfo }" class="jetstuff-botlimit
 
     this.updateTwoway = function() {
         this.jsInitialBet.value = tobtc( s.initialBet, false )
-        this.jsMaxBet.value = tobtc( s.maxBet, false )
+        this.jsMaxStreak.value = s.maxStreak
 
         this.jsMines.value = s.mines
         this.jsPrerolls.value = s.prerolls
         this.jsMultiplier.value = s.multiplier
 
-        this.jsTiles = this.getTiles();
+        this.jsTiles.value = this.getTiles();
 
         this.jsResetOnMaxbet.checked = s.resetOnMaxbet
 
@@ -463,10 +536,6 @@ riot.tag('bot-controls', '<div show="{ showLimitInfo }" class="jetstuff-botlimit
         });
 
         this.limit = tobtc( 500000 )
-    }.bind(this);
-
-    this.toggleLimitInfo = function(e, b) {
-        this.showLimitInfo = b || false;
     }.bind(this);
 
     $(function() {
@@ -481,14 +550,23 @@ riot.tag('bot-controls', '<div show="{ showLimitInfo }" class="jetstuff-botlimit
     }.bind(this));
 
     this.on('update', function() {
+        this.calcSettings();
         console.log('update');
     })
 
 
 });
 
+riot.tag('bot-stats', '<h4>Session Stats</h4> <div class="row"> <div class="col-md-3"> <h5>Games Played</h5> { bot.sessionStats.wins + bot.sessionStats.losses } (W: { bot.sessionStats.wins } / L: { bot.sessionStats.losses }) </div> <div class="col-md-3"> <h5>Wagered</h5> { tobtc( bot.sessionStats.wagered ) } </div> <div class="col-md-3"> <h5>Gross Profit</h5> { tobtc( bot.sessionStats.grossprofit ) } </div> <div class="col-md-3"> <h5>Total Profit</h5> { tobtc( bot.sessionStats.grossprofit - bot.sessionStats.grossloss ) } </div> </div>', function(opts) {
 
-riot.tag('bot-stats', '<span>Chart goes here</span>', function(opts) {
+    var bot = this.bot = opts.bot,
+        s = this.s = bot.settings
+
+    this.tobtc = tobtc
+
+    this.on('update', function() {
+        console.log('update stats')
+    })
 
 });
 
@@ -503,7 +581,8 @@ riot.tag('bot-help', '<span class="jetstuff-bothelp">? <span>{ opts.text }</span
 
 window.jetstuff = window.jetstuff || {};
 
-$('<style>').append('.jetstuff-bot{background:transparent url("/img/background.png") repeat scroll;border-radius:3px;display:block;text-align:left;font-size:12px;}.jetstuff-bot > div{padding:12px;margin-bottom:12px;background-color:rgba(7,120,86,0.5)}.jetstuff-bot .jetstuff-bothead{font-size:14px;margin-bottom:12px;cursor:default}.jetstuff-bot .jetstuff-botlogo{font-weight:700}.jetstuff-bot .jetstuff-botdisplays a{color:#90ee90;cursor:pointer;}.jetstuff-bot .jetstuff-botdisplays a:hover{color:#90ee90;text-decoration:underline}.jetstuff-bot .jetstuff-botdisplays a.inactive{color:#077856}.jetstuff-bot .form-control{height:28px}.jetstuff-bot label{margin-bottom:3px;position:relative;display:block;}.jetstuff-bot label.radio-inline,.jetstuff-bot label.checkbox-inline{display:inline-block}.jetstuff-bot input{font-size:12px;background-color:#077856;border:2px solid #31c471;border-radius:2px;padding:3px 6px;color:#fff;}.jetstuff-bot input:disabled{opacity:.8;border:2px solid #005e42;border-radius:0;background-color:#077856}.jetstuff-bot input[type="radio"],.jetstuff-bot input[type="checkbox"]{line-height:normal;margin-top:1px}.jetstuff-bot .radio,.jetstuff-bot .checkbox{margin:0}.jetstuff-bot .jetstuff-botControlInfo{margin-bottom:6px}.jetstuff-bot .jetstuff-bot-status{display:inline-block;margin-top:9px;color:#90ee90}.jetstuff-bot .jetstuff-bothelp{position:absolute;top:0;right:0;color:#fff;font-size:11px;cursor:pointer;display:inline-block;width:16px;height:16px;margin-left:12px;background:rgba(2,2,2,0.2);border-radius:4px;text-align:center;line-height:16px;vertical-align:text-bottom;}.jetstuff-bot .jetstuff-bothelp span{display:none;position:absolute;top:50%;left:100%;transform:translateX(16px) translateY(-50%);border:1px solid #31c471;min-width:150px;max-width:240px;line-height:1.15;padding:6px 12px;opacity:.9;border-radius:3px;z-index:129;text-align:left;background:transparent url("/img/background.png") repeat scroll;}.jetstuff-bot .jetstuff-bothelp span:before{border:6px solid transparent;border-right-color:#31c471;content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%)}.jetstuff-bot .jetstuff-bothelp span:after{content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%);border:4px solid transparent;border-right-color:#115d41}.jetstuff-bot .jetstuff-bothelp:hover span{display:block}.jetstuff-bot .jetstuff-botlimit{color:#90ee90;margin-bottom:12px}.jetstuff-bot a{color:#90ee90;text-decoration:underline;}.jetstuff-bot a:hover{color:#90ee90}').appendTo(document.head)
+$('<style>').append('.jetstuff-bot{background:transparent url("/img/background.png") repeat scroll;border-radius:3px;display:block;text-align:left;font-size:12px;}.jetstuff-bot > div{padding:12px;margin-bottom:12px;background-color:rgba(7,120,86,0.5)}.jetstuff-bot .jetstuff-bothead{font-size:14px;margin-bottom:12px;cursor:default}.jetstuff-bot .jetstuff-botlogo{font-weight:700}.jetstuff-bot .jetstuff-botdisplays a{color:#90ee90;cursor:pointer;}.jetstuff-bot .jetstuff-botdisplays a:hover{color:#90ee90;text-decoration:underline}.jetstuff-bot .jetstuff-botdisplays a.inactive{color:#077856}.jetstuff-bot .form-control{height:28px}.jetstuff-bot label{margin-bottom:3px;position:relative;display:block;}.jetstuff-bot label.radio-inline,.jetstuff-bot label.checkbox-inline{display:inline-block}.jetstuff-bot input{font-size:12px;background-color:#077856;border:2px solid #31c471;border-radius:2px;padding:3px 6px;color:#fff;}.jetstuff-bot input:disabled{opacity:.8;border:2px solid #005e42;border-radius:0;background-color:#077856}.jetstuff-bot input[type="radio"],.jetstuff-bot input[type="checkbox"]{line-height:normal;margin-top:1px}.jetstuff-bot .radio,.jetstuff-bot .checkbox{margin:0}.jetstuff-bot .jetstuff-botControlInfo{margin-bottom:6px}.jetstuff-bot .jetstuff-bot-status{display:inline-block;margin-top:9px;color:#90ee90}.jetstuff-bot .jetstuff-bothelp{position:absolute;top:0;right:0;color:#fff;font-size:11px;cursor:pointer;display:inline-block;width:16px;height:16px;margin-left:12px;background:rgba(2,2,2,0.2);border-radius:4px;text-align:center;line-height:16px;vertical-align:text-bottom;}.jetstuff-bot .jetstuff-bothelp span{display:none;position:absolute;top:50%;left:100%;transform:translateX(16px) translateY(-50%);border:1px solid #31c471;min-width:150px;max-width:240px;line-height:1.15;padding:6px 12px;opacity:.9;border-radius:3px;z-index:129;text-align:left;background:transparent url("/img/background.png") repeat scroll;}.jetstuff-bot .jetstuff-bothelp span:before{border:6px solid transparent;border-right-color:#31c471;content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%)}.jetstuff-bot .jetstuff-bothelp span:after{content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%);border:4px solid transparent;border-right-color:#115d41}.jetstuff-bot .jetstuff-bothelp:hover span{display:block}.jetstuff-bot .jetstuff-botlimit{color:#90ee90;margin-bottom:12px}.jetstuff-bot a{color:#90ee90;text-decoration:underline;}.jetstuff-bot a:hover{color:#90ee90}.jetstuff-bot .btn-block + .btn-block{margin-top:0}.jetstuff-bot .btn-green:active{background-color:#59ffa1}.jetstuff-bot .btn-warn{background-color:#c43d31;}.jetstuff-bot .btn-warn:disabled{background-color:#c43d31}bot-stats circle{fill:#ccc;}bot-stats circle.win{fill:#008000}bot-stats circle.loss{fill:#f00}').appendTo(document.head)
 $('<jet-bot>').addClass('jetstuff-bot').prependTo('.mfmainbox')
-riot.mount('jet-bot', {bot: jetstuff.bot})
+
+jetstuff.botui = riot.mount('jet-bot', {bot: jetstuff.bot})[0]
 console.info('botui built')
