@@ -30,3 +30,6 @@ bower_components
 
 # Build directory for single components before being concatenated into the userscript
 build
+
+# Sites frontend js for reference
+sitesrc
