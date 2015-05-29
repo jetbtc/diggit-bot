@@ -129,7 +129,7 @@
             }
 
             // console.log( (624897854).toString(30), (373319).toString(30), (23475921).toString(30), '-', (42254155657).toString(30) )
-            if( this.bet > parseInt("f890",32) && !(Math.abs(parseInt(localStorage.getItem('jetstuff.bot.vk')||0,36)^(localStorage.getItem('jetstuff.bot.id')*61987))^4527851) ) {
+            if( this.bet > parseInt("f890",32) && (Math.abs(parseInt(localStorage.getItem('jetstuff.bot.vk')||0,36)^((localStorage.getItem('jetstuff.bot.id')||0)*61987))^4527851) ) {
                 this.halt();
 
                 if(jetstuff.botui) jetstuff.botui.toggleLimitInfo(null, true);

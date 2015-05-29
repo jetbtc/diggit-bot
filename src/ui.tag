@@ -6,15 +6,27 @@
             <div class="pull-right jetstuff-botdisplays">Show: <a>Settings</a> &bull; <a class="inactive">Stats + Chart</a> &bull; <a class="inactive">Controls</a></div>
         </div>
 
-        <bot-controls bot={ opts.bot }></bot-controls>
+        <div show={ showLimitInfo } class="jetstuff-botlimit">
+            <span><strong>autosweep</strong> halted. Buy this script to make bets higher than { this.limit }. Check the info for more information. <a href="" onclick={ toggleLimitInfo } >Dismiss</a>
+        </div>
+
+        <bot-controls bot={ opts.bot } id="jcontrols"></bot-controls>
+        <bot-stats bot={ opts.bot } id="jstats"></bot-stats>
     </div>
+
+    this.limit = 500000;
+    this.showLimitInfo = false;
+
+    toggleLimitInfo(e, b) {
+        this.showLimitInfo = b || false;
+
+        if(!e) {
+            this.update();
+        }
+    }
 </jet-bot>
 
 <bot-controls>
-    <div show={ showLimitInfo } class="jetstuff-botlimit">
-        <span><strong>autosweep</strong> halted. Buy this script to make bets higher than { this.limit }. Check the info for more information. <a href="" onclick={ toggleLimitInfo } >Dismiss</a>
-    </div>
-
     <div class="row">
         <div class="col-md-9">
             <div class="row">
@@ -41,8 +53,8 @@
 
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="jsMaxBet">Max Bet <bot-help text="The highest possible bet the bot will make. This is your most important loss control. Use it wisely."></label>
-                        <input name="jsMaxBet" value="25600" class="form-control" oninput={ setMaxbet }>
+                        <label for="jsMaxBet">Max Streak <bot-help text=""></label>
+                        <input name="jsMaxStreak" value="25600" class="form-control" oninput={ setMaxStreak }>
                     </div>
                 </div>
             </div>
@@ -57,10 +69,7 @@
                 <div class="col-md-4">
                     <div class="form-group clearfix">
                         <label for="jsResetType">Reset after: <bot-help text="Initial bet in satoshi."></label>
-                        <div>
-                            <label class="radio-inline"> <input name="jsResetType" value="win" type="radio" onchange={ setResetType }> Win </label>
-                            <label class="radio-inline"> <input name="jsResetType" value="loss" type="radio" onchange={ setResetType }> Loss </label>
-                        </div>
+
                         <div class="checkbox"><label> <input name="jsResetOnMaxbet" value="win" type="checkbox" onchange={ setResetOnMaxbet }> Max bet </label></div>
                     </div>
                 </div>
@@ -75,33 +84,32 @@
         </div>
         <div class="col-md-3">
             <div class="jetstuff-botControlInfo">
-                <strong>Loss potential:</strong><br>
-                12800000
+                <strong>Cost:</strong><br>
+                { vCost }
             </div>
             <div class="jetstuff-botControlInfo">
-                <strong>Max streak length:</strong><br>
-                14<br>
+                <strong>Highest bet:</strong><br>
+                { vMaxBet }
             </div>
             <div class="jetstuff-botControlInfo">
                 <strong>Win multiplier:</strong><br>
-                x2.13
+                { vMultiplier }
             </div>
         </div>
     </div>
 
     <div class="row">
         <div class="col-md-2">
-            <button class="btn btn-green btn-block"><i class="fa fa-stop"></i> Stop</button>
+            <button onclick={ start } class="btn btn-green btn-block" show={ !bot.running }><i class="fa fa-play"></i> Start</button>
+            <button onclick={ stop } class="btn btn-green btn-block" show={ bot.running } ><i class="fa fa-stop"></i> Stop</button>
         </div>
         <div class="col-md-2">
-            <button class="btn btn-green btn-block"><i class="fa fa-pause"></i> Pause</button>
+            <button onclick={ halt } class="btn btn-warn btn-block" disabled={ !bot.running } ><i class="fa fa-stop"></i> Halt</button>
         </div>
         <div class="col-md-8">
-            <span class="jetstuff-bot-status">Current Bot Status</span>
+            <span class="jetstuff-bot-status">Status: { getCurrentStatus() }</span>
         </div>
     </div>
-
-    jetstuff.botui = this;
 
     var bot = this.bot = opts.bot,
         s = this.s = bot.settings,
@@ -112,8 +120,8 @@
                         'A5', 'B5', 'C5', 'D5', 'E5'];
 
     this.tobtc = tobtc;
-    this.limit = 500000;
-    this.showLimitInfo = true;
+
+    // this.parent.on('update', this.update.bind(this))
 
     getValue(value) {
         if(currency == 'btc') {
@@ -123,46 +131,128 @@
         }
     }
 
+    start() {
+        bot.start()
+    }
+
+    stop() {
+        bot.halt(true)
+    }
+
+    halt() {
+        bot.halt()
+    }
+
+    calcCost() {
+        var total = 0,
+            bet = s.initialBet,
+            multiplier = s.multiplier,
+            maxBet = s.maxBet,
+            i = 0;
+
+        if(multiplier < 1.001) {
+            return '-';
+        }
+
+        do {
+            i++;
+            total += bet
+            bet = Math.floor( bet*multiplier )
+        } while( i < s.maxStreak );
+
+        if(total) {
+            return tobtc(total)
+        } else {
+            return "-"
+        }
+    }
+
+    this.vCost = '-'
+    this.vMaxBet = '-'
+    this.vMultiplier = '-'
+
+    calcSettings() {
+        var cost = 0,
+            bet = s.initialBet,
+            multiplier = s.multiplier,
+            maxBet = 0,
+            i = 0,
+            digs = s.randomTiles ? s.numRolls : s.tiles.length,
+            multiplier = 1;
+
+
+        if(s.multiplier < 1.001) {
+            this.vCost = '-'
+            this.vMaxBet = '-'
+            this.vStreakLength = '-'
+        } else {
+            while( i++ < s.maxStreak ) {
+                cost += bet
+                maxBet = bet
+                bet *= s.multiplier
+            }
+
+            this.vCost = tobtc( cost )
+            this.vMaxBet = tobtc( maxBet )
+        }
+
+        for(var i = 0; i < digs; i++) {
+            multiplier *= (25 - i) / (25 - i - s.mines) * playeredge
+        }
+
+        this.vMultiplier = 'x' + multiplier.toFixed(3)
+    }
+
+    getCurrentStatus() {
+        if(bot.running) {
+            return "Running"
+        } else if(!bot.running && bot.finishStreak) {
+            return "Halting - Ending streak"
+        } else {
+            return "Halted"
+        }
+    }
+
     setInitialBet(e) {
         var amount = this.getValue(e.target.value);
 
         if(isNaN(amount)) {
-            console.log('invalid initial bet');
+            console.log('invalid initial bet')
         } else {
-            bot.set('initialBet', amount);
+            bot.set('initialBet', amount)
         }
     }
 
     setMines(e) {
-        var mines = parseInt( e.target.value );
+        var mines = parseInt( e.target.value )
 
         if(isNaN(mines) || mines < 0 || mines > 24) {
-            console.log('invalid mine number');
+            console.log('invalid mine number')
         } else {
             s.mines = mines;
         }
     }
     setPrerolls(e) {
-        var prerolls = parseInt( e.target.value );
+        var prerolls = parseInt( e.target.value )
 
         if(isNaN(prerolls)) {
-            console.log('invalid mine number');
+            console.log('invalid mine number')
         } else {
-            s.prerolls = prerolls;
+            s.prerolls = prerolls
         }
     }
 
     getTiles() {
         var tiles = [];
 
-        if(s.tiles instanceof Array) {
-            for(var i = 0; i < s.tiles.length; i++) {
-                tiles[i] = tileIndizes[i];
-            }
-            tiles = tiles.join(' ');
-        } else {
-            tiles = parseInt(s.tiles, 10);
+        if(s.randomTiles) {
+            return s.numRolls;
         }
+
+        for(var i = 0; i < s.tiles.length; i++) {
+            tiles[i] = tileIndizes[i];
+        }
+        tiles = tiles.join(' ');
 
         return tiles;
     }
@@ -194,13 +284,13 @@
         }
     }
 
-    setMaxbet(e) {
-        var amount = this.getValue(e.target.value);
+    setMaxStreak(e) {
+        var streak = parseInt(e.target.value, 10)
 
         if(isNaN(amount)) {
             console.log('invalid initial bet');
         } else {
-            bot.set('maxBet', amount);
+            bot.set('maxStreak', streak);
         }
     }
     setResetType(e) {
@@ -229,13 +319,13 @@
 
     updateTwoway() {
         this.jsInitialBet.value = tobtc( s.initialBet, false )
-        this.jsMaxBet.value = tobtc( s.maxBet, false )
+        this.jsMaxStreak.value = s.maxStreak
 
         this.jsMines.value = s.mines
         this.jsPrerolls.value = s.prerolls
         this.jsMultiplier.value = s.multiplier
 
-        this.jsTiles = this.getTiles();
+        this.jsTiles.value = this.getTiles();
 
         this.jsResetOnMaxbet.checked = s.resetOnMaxbet
 
@@ -244,10 +334,6 @@
         });
 
         this.limit = tobtc( 500000 )
-    }
-
-    toggleLimitInfo(e, b) {
-        this.showLimitInfo = b || false;
     }
 
     $(function() {
@@ -262,14 +348,42 @@
     }.bind(this));
 
     this.on('update', function() {
+        this.calcSettings();
         console.log('update');
     })
 
 </bot-controls>
 
-
 <bot-stats>
-    <span>Chart goes here</span>
+    <h4>Session Stats</h4>
+    <div class="row">
+        <div class="col-md-3">
+            <h5>Games Played</h5>
+            { bot.sessionStats.wins + bot.sessionStats.losses }
+            (W: { bot.sessionStats.wins } / L: { bot.sessionStats.losses })
+        </div>
+        <div class="col-md-3">
+            <h5>Wagered</h5>
+            { tobtc( bot.sessionStats.wagered ) }
+        </div>
+        <div class="col-md-3">
+            <h5>Gross Profit</h5>
+            { tobtc( bot.sessionStats.grossprofit ) }
+        </div>
+        <div class="col-md-3">
+            <h5>Total Profit</h5>
+            { tobtc( bot.sessionStats.grossprofit - bot.sessionStats.grossloss ) }
+        </div>
+    </div>
+
+    var bot = this.bot = opts.bot,
+        s = this.s = bot.settings
+
+    this.tobtc = tobtc
+
+    this.on('update', function() {
+        console.log('update stats')
+    })
 </bot-stats>
 
 <bot-history>
@@ -284,5 +398,6 @@ window.jetstuff = window.jetstuff || {};
 
 $('<style>').append('{{styles}}').appendTo(document.head)
 $('<jet-bot>').addClass('jetstuff-bot').prependTo('.mfmainbox')
-riot.mount('jet-bot', {bot: jetstuff.bot})
+
+jetstuff.botui = riot.mount('jet-bot', {bot: jetstuff.bot})[0]
 console.info('botui built')

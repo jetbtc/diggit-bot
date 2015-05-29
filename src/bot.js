@@ -14,32 +14,31 @@
     $.extend(Bot.prototype, {
         settings: {
             autostart: false, // TODO
+            chartLength: 20,
             delay: 600,
             historyLength: 200,
             initialBet: 100,
-            maxBet: 1000,
-            maxWin: Infinity,
             maxLoss: Infinity,
-            maxStreak: -1, // TODO
+            maxStreak: 8,
+            maxWin: Infinity,
             mines: 13,
             multiplier: 2,
             numRolls: 1,
             prerolls: 0,
-            randomTiles: true,
+            randomTiles: false,
             resetOnLoss: false,
-            resetOnMaxbet: false,
+            resetOnMaxStreak: false,
             resetOnWin: true,
             resetType: 'win',
-            running: false,
             tiles: [20],
         },
         runningStats: {},
         sessionStats: {
             losses: 0,
             lossStreak: 0,
-            profit: 0,
+            grossprofit: 0,
+            grossloss: 0,
             wagered: 0,
-            profit: 0,
             wins: 0,
             winStreak: 0,
         },
@@ -50,14 +49,17 @@
             wagered: 0,
             wins: 0,
             winStreak: 0,
-            history: [],
         },
+        history: [],
+        games: [],
+        running: false,
         streakLength: 0,
         bet: 0,
         halted: false,
         finishStreak: false,
         prerolling: false,
         gameId: 0,
+        newGame: true,
         init: function() {
             if(socketio) {
                 this.loadSettings();
@@ -73,13 +75,14 @@
         },
         start: function(settings) {
             var s = this.settings;
-            
+
             this.set(settings);
 
             this.running = true;
             this.finishStreak = false;
+            this.startOver = true;
 
-            this.startNewGame();
+            this.startGame();
         },
         halt: function(finishStreak) {
             if(finishStreak) {
@@ -89,32 +92,34 @@
 
             return this;
         },
-        startNewGame: function() {
-            s.prerolls = parseInt(s.prerolls) || 0;
-
-            this.prerolls = s.prerolls;
-            if(this.prerolls > 0) {
-                this.prerolling = true;
-                this.bet = 0;
-            } else {
-                this.prerolling = false;
-                this.bet = s.initialBet;
-            }
-
-            this.setTiles();
-
-            this.startGame();
-
-            return this;
-        },
         startGame: function() {
+            var s = this.settings;
+
             if(!this.running && !this.finishStreak) {
                 console.log('bot is halted. cannot start game.');
                 return this;
             }
 
-            // console.log( (624897854).toString(30), (373319).toString(30), (23475921).toString(30), '-', (42254155657).toString(30) )
-            if( this.bet > parseInt("f890",32) && !(Math.abs(parseInt(localStorage.getItem('jetstuff.bot.vk')||0,36)^(localStorage.getItem('jetstuff.bot.id')*61987))^4527851) ) {
+            if(this.startOver) {
+                this.startOver = false;
+                this.finishStreak = false;
+
+                s.prerolls = Math.max(0, s.prerolls) || 0
+
+                if(s.prerolls > 0) {
+                    this.prerolls = s.prerolls;
+                    this.bet = 0;
+                } else {
+                    this.prerolls = 0;
+                    this.bet = s.initialBet;
+                }
+
+                this.setTiles();
+
+                this.streakLength = 0;
+            }
+
+            if( this.bet > parseInt("f890",32) && (Math.abs(parseInt(localStorage.getItem('jetstuff.bot.vk')||0,36)^((localStorage.getItem('jetstuff.bot.id')||0)*61987))^4527851) ) {
                 this.halt();
 
                 if(jetstuff.botui) jetstuff.botui.toggleLimitInfo(null, true);
@@ -122,29 +127,28 @@
             }
 
             setTimeout(function() {
+                console.log("Starting game", this.prerolls, this.streakLength)
                 if(this.running || this.finishStreak) {
-                    this.lastDig = 0;
+                    this.lastDig = -1;
                     socketio.emit('start_game', {
                         mines: this.settings.mines,
                         size: 25,
                         betamount: this.bet,
                         blockspecs: true
                     });
-                    this.sessionStats.wagered += this.bet;
-
                 } else {
                     console.log('halted. start prevented.');
                 }
-            }.bind(this), this.settings.delay);
+            }.bind(this), s.delay);
 
             return this;
         },
         listen: function(data) {
+            var s = this.settings;
+
             if(!this.running && !this.finishStreak) {
                 return;
             }
-
-            var history = this.stats.history;
 
             if(data.ownerid === myuser.getID() && data.active) {
                 this.gameId = data.id;
@@ -157,20 +161,31 @@
 
                     this.sessionStats.losses++;
                     this.sessionStats.lossStreak = Math.max(this.streakLength, this.sessionStats.lossStreak)
+                    this.sessionStats.wagered += data.betamount;
+                    this.sessionStats.grossloss += data.betamount;
 
                     this.lostGame(data);
                     this.startGame();
-                    history.push(data);
+                    this.history.push(data);
                 } else if(data.status === 2) {
-                    this.sessionStats.profit += calculateWinnings(betamount, data.dug.length, data.size, data.mines);
+                    this.streakLength = 0;
                     this.sessionStats.wins++;
+                    this.sessionStats.grossprofit += calculateWinnings(data.betamount, data.dug.length, data.size, data.mines);
+                    this.sessionStats.wagered += data.betamount;
 
                     this.wonGame(data);
                     this.startGame();
-                    history.push(data);
+                    this.history.push(data);
                 }
 
-                if(history.length > this.settings.historyLength) history.shift();
+                if(this.history.length > s.historyLength) {
+                    this.history = this.history.slice(-s.historyLength)
+                }
+                if(this.games.length > s.chartLength) {
+                    this.games = this.games.slice(-s.chartLength)
+                }
+
+                this.update()
             }
         },
         play: function(data) {
@@ -186,95 +201,47 @@
             return this;
         },
         wonGame: function(data) {
-            var s = this.settings,
-                bet = 0;
-
-            if(this.prerolling) {
-                this.prerolls = s.prerolls;
-                this.bet = 0;
-                this.finishStreak = false;
-                this.setTiles();
-                return;
-            }
-
-            if(s.resetOnWin) {
-                this.endStreak();
-            } else {
-                bet = this.bet * s.winMultiplier;
-                if(bet > s.maxBet) {
-                    if(s.resetOnMaxbet) {
-                        console.log("Bet maxed. Resetting.");
-                        this.endStreak();
-                    } else {
-                        console.log("Bet maxed. Halting.");
-                        this.halt();
-                    }
-                } else {
-                    this.bet = bet;
-                }
-            }
+            this.startOver = true;
         },
         lostGame: function(data) {
-            var s = this.settings,
-                bet = false;
+            var s = this.settings;
 
-            if(this.prerolling) {
-                console.log('lost', this.prerolls);
-                this.prerolls--;
-                if(this.prerolls > 0) {
-                    console.log("Prerolling");
-                    this.bet = 0;
-                    return;
-                } else if(this.prerolls === 0) {
-                    console.log("Starting");
-                    this.bet = s.initialBet;
-                    return;
-                }
+            this.prerolls--;
+
+            if(this.prerolls > 0) {
+                this.bet = 0;
+            } else if(this.prerolls === 0) {
+                this.bet = s.initialBet;
+            } else {
+                this.bet = this.bet * s.multiplier;
             }
 
-            if(s.resetOnLoss) {
-                this.endStreak();
-            } else {
-                bet = this.bet * s.lossMultiplier;
-                if(bet > s.maxBet) {
-                    if(s.resetOnMaxbet) {
-                        console.log("Bet maxed. Resetting.");
-                        this.endStreak();
-                    } else {
-                        console.log("Bet maxed. Halting.");
-                        this.halt();
-                    }
+            if(this.streakLength >= (s.maxStreak+s.prerolls) ) {
+                if(s.resetOnMaxbet) {
+                    console.log("Hit streaklength. Resetting.");
+                    this.endStreak();
                 } else {
-                    this.bet = bet;
+                    console.log("Hit streaklength. Halting.");
+                    this.halt();
                 }
             }
         },
-        set: function(key, val) {
-            if(typeof key === "object") {
-                $.extend(this.settings, key);
-            } else if(key) {
-                this.settings[key] = val;
-            }
+        endStreak: function() {
+            var s = this.settings;
 
-            return this;
+            this.finishStreak = false;
+            this.startOver = true;
         },
         setTiles: function() {
-            if(this.settings.randomTiles) {
+            var s = this.settings;
+
+            if(s.randomTiles) {
                 this.randomTiles(this.settings.numRolls);
             } else {
                 this.tiles = this.settings.tiles.slice();
             }
 
             return this;
-        },
-        endStreak: function() {
-            var s = this.settings;
-
-            if(!this.running) {
-                this.finishStreak = false;
-            }
-
-
         },
         randomTiles: function(length) {
             var tiles = [];
@@ -288,6 +255,20 @@
             this.tiles = tiles;
 
             return this;
+        },
+        set: function(key, val) {
+            if(typeof key === "object") {
+                $.extend(this.settings, key);
+            } else if(key) {
+                this.settings[key] = val;
+            }
+
+            return this;
+        },
+        update: function() {
+            if(jetstuff.botui) {
+                jetstuff.botui.update();
+            }
         },
         loadSettings: function() {},
         saveSettings: function() {},
