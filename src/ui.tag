@@ -3,11 +3,15 @@
         <div class="jetstuff-bothead clearfix">
             <div class="jetstuff-botlogo pull-left">autosweep</div>
 
-            <div class="pull-right jetstuff-botdisplays">Show: <a>Settings</a> &bull; <a class="inactive">Stats + Chart</a> &bull; <a class="inactive">Controls</a></div>
+            <div class="pull-right jetstuff-botdisplays">Show: 
+                <a id="jtogglecontrols" onclick={ toggleControls }>Controls</a> &bull;
+                <a id="jtogglestats" onclick={ toggleStats }>Session Stats</a>
+            </div>
         </div>
 
         <div show={ showLimitInfo } class="jetstuff-botlimit">
-            <span><strong>autosweep</strong> halted. Buy this script to make bets higher than { this.limit }. Check the info for more information. <a href="" onclick={ toggleLimitInfo } >Dismiss</a>
+            <strong>autosweep</strong> halted. Consider tipping me to make bets higher than { tobtc(limit, false) } <unit />.<br>
+            Check the <a href="https://github.com/jetbtc/diggit-bot" target="__blank">info</a> for more information. <a href="" onclick={ toggleLimitInfo } >Dismiss</a>
         </div>
 
         <bot-controls bot={ opts.bot } id="jcontrols"></bot-controls>
@@ -17,6 +21,32 @@
     this.limit = 500000;
     this.showLimitInfo = false;
 
+    this.tobtc = tobtc;
+
+    toggleControls() {
+        var $toggle = $(this.jtogglecontrols);
+
+        if($toggle.hasClass('inactive')) {
+            $toggle.removeClass('inactive');
+            $(this.jcontrols).show();
+        } else {
+            $toggle.addClass('inactive');
+            $(this.jcontrols).hide();
+        }
+    }
+
+    toggleStats() {
+        var $toggle = $(this.jtogglestats);
+
+        if($toggle.hasClass('inactive')) {
+            $toggle.removeClass('inactive');
+            $(this.jstats).show();
+        } else {
+            $toggle.addClass('inactive');
+            $(this.jstats).hide();
+        }
+    }
+
     toggleLimitInfo(e, b) {
         this.showLimitInfo = b || false;
 
@@ -24,6 +54,13 @@
             this.update();
         }
     }
+
+    $(function() {
+        this.update();
+
+        $('.setcurrencybtc').click(this.update.bind(this));
+        $('.setcurrencybits').click(this.update.bind(this));  
+    }.bind(this));
 </jet-bot>
 
 <bot-controls>
@@ -32,28 +69,28 @@
             <div class="row">
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="jsInitialBet">Start Bet <bot-help text="Your initial bet amount in satoshi."></label>
+                        <label for="jsInitialBet">Start Bet <bot-help text="Your initial bet amount in the unit you selected in the top right of the site."></label>
                         <input name="jsInitialBet" value="" class="form-control" oninput={ setInitialBet }>
                     </div>
                 </div>
 
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="jsMines">Mines</label>
+                        <label for="jsMines">Mines <bot-help text="Number of mines to play with."></label>
                         <input name="jsMines" value="" class="form-control" oninput={ setMines }>
                     </div>
                 </div>
 
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="jsPrerolls">Prerolls <bot-help text="Number of 0 bets the bot will have to lose in a row before starting with the initial bet."></label>
+                        <label for="jsPrerolls">Prerolls <bot-help text="Number of games to play with a bet amount of 0 the bot has to lose in a row before starting with the initial bet."></label>
                         <input name="jsPrerolls" value="" class="form-control" oninput={ setPrerolls }>
                     </div>
                 </div>
 
                 <div class="col-md-3">
                     <div class="form-group">
-                        <label for="jsMaxBet">Max Streak <bot-help text=""></label>
+                        <label for="jsMaxBet">Max Streak <bot-help text="The max streak to play without stopping. This determines the amount of BTC you can lose. See 'cost' and 'highest bet' on the right."></label>
                         <input name="jsMaxStreak" value="25600" class="form-control" oninput={ setMaxStreak }>
                     </div>
                 </div>
@@ -68,7 +105,7 @@
 
                 <div class="col-md-4">
                     <div class="form-group clearfix">
-                        <label for="jsResetType">Reset after: <bot-help text="Initial bet in satoshi."></label>
+                        <label for="jsResetType">Reset after: <bot-help text="Events after which to reset to the base bet. Otherwise halt."></label>
 
                         <div class="checkbox"><label> <input name="jsResetOnMaxbet" value="win" type="checkbox" onchange={ setResetOnMaxbet }> Max bet </label></div>
                     </div>
@@ -76,7 +113,7 @@
 
                 <div class="col-md-4">
                     <div class="form-group">
-                        <label for="jsMultiplier">Multiplier <bot-help text="Initial bet in satoshi."></label>
+                        <label for="jsMultiplier">Multiplier <bot-help text="Multiplier on loss"></label>
                         <input name="jsMultiplier" value="2" class="form-control" oninput={ setMultiplier }>
                     </div>
                 </div>
@@ -85,11 +122,11 @@
         <div class="col-md-3">
             <div class="jetstuff-botControlInfo">
                 <strong>Cost:</strong><br>
-                { vCost }
+                { vCost } <unit />
             </div>
             <div class="jetstuff-botControlInfo">
                 <strong>Highest bet:</strong><br>
-                { vMaxBet }
+                { vMaxBet } <unit />
             </div>
             <div class="jetstuff-botControlInfo">
                 <strong>Win multiplier:</strong><br>
@@ -161,7 +198,7 @@
         } while( i < s.maxStreak );
 
         if(total) {
-            return tobtc(total)
+            return tobtc(total, false)
         } else {
             return "-"
         }
@@ -192,8 +229,8 @@
                 bet *= s.multiplier
             }
 
-            this.vCost = tobtc( cost )
-            this.vMaxBet = tobtc( maxBet )
+            this.vCost = tobtc( cost, false )
+            this.vMaxBet = tobtc( maxBet, false )
         }
 
         for(var i = 0; i < digs; i++) {
@@ -332,19 +369,13 @@
         $( '[name=jsResetType]', this.root).prop('checked', function() {
             return this.value === s.resetType;
         });
-
-        this.limit = tobtc( 500000 )
     }
 
     $(function() {
         this.updateTwoway();
-    }.bind(this));
-    
-    $('.setcurrencybtc').click(function() {
-        this.updateTwoway();
-    }.bind(this));
-    $('.setcurrencybits').click(function() {
-        this.updateTwoway();
+        
+        $('.setcurrencybtc').click(this.updateTwoway.bind(this));
+        $('.setcurrencybits').click(this.updateTwoway.bind(this));  
     }.bind(this));
 
     this.on('update', function() {
@@ -364,15 +395,15 @@
         </div>
         <div class="col-md-3">
             <h5>Wagered</h5>
-            { tobtc( bot.sessionStats.wagered ) }
+            { tobtc( bot.sessionStats.wagered, false ) } <unit />
         </div>
         <div class="col-md-3">
             <h5>Gross Profit</h5>
-            { tobtc( bot.sessionStats.grossprofit ) }
+            { tobtc( bot.sessionStats.grossprofit, false ) } <unit />
         </div>
         <div class="col-md-3">
             <h5>Total Profit</h5>
-            { tobtc( bot.sessionStats.grossprofit - bot.sessionStats.grossloss ) }
+            { tobtc( bot.sessionStats.grossprofit - bot.sessionStats.grossloss, false ) } <unit />
         </div>
     </div>
 
@@ -393,6 +424,18 @@
 <bot-help>
     <span class="jetstuff-bothelp">? <span>{ opts.text }</span></span>
 </bot-help>
+
+<unit>
+    <i class="fa fa-btc" if={ isbtc() }></i> 
+    <span if={ isbits() }>b</span>
+
+    isbtc() {
+        return currency == 'btc';
+    }
+    isbits() {
+        return currency == 'bits';
+    }
+</unit>
 
 window.jetstuff = window.jetstuff || {};
 
