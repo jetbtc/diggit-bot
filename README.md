@@ -2,6 +2,8 @@
 
 Automatic betting for https://diggit.io - by jet (#1761 on diggit)
 
+![Preview](preview.png)
+
 ### Installation
 
 #### Firefox
