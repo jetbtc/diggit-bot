@@ -55,12 +55,12 @@
         }
     }
 
-    $(function() {
+    this.on('ready', function() {
         this.update();
 
         $('.setcurrencybtc').click(this.update.bind(this));
         $('.setcurrencybits').click(this.update.bind(this));  
-    }.bind(this));
+    });
 </jet-bot>
 
 <bot-controls>
@@ -371,12 +371,12 @@
         });
     }
 
-    $(function() {
+    this.on('ready', function() {
         this.updateTwoway();
         
         $('.setcurrencybtc').click(this.updateTwoway.bind(this));
         $('.setcurrencybits').click(this.updateTwoway.bind(this));  
-    }.bind(this));
+    });
 
     this.on('update', function() {
         this.calcSettings();
