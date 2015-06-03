@@ -96,7 +96,7 @@
             var s = this.settings;
 
             if(!this.running && !this.finishStreak) {
-                console.log('bot is halted. cannot start game.');
+                // console.log('bot is halted. cannot start game.');
                 return this;
             }
 
@@ -127,7 +127,6 @@
             }
 
             setTimeout(function() {
-                console.log("Starting game", this.prerolls, this.streakLength)
                 if(this.running || this.finishStreak) {
                     this.lastDig = -1;
                     socketio.emit('start_game', {
@@ -137,7 +136,7 @@
                         blockspecs: true
                     });
                 } else {
-                    console.log('halted. start prevented.');
+                    // Should be covered by the UI
                 }
             }.bind(this), s.delay);
 
@@ -218,10 +217,10 @@
 
             if(this.streakLength >= (s.maxStreak+s.prerolls) ) {
                 if(s.resetOnMaxbet) {
-                    console.log("Hit streaklength. Resetting.");
+                    // console.log("Hit streaklength. Resetting.");
                     this.endStreak();
                 } else {
-                    console.log("Hit streaklength. Halting.");
+                    // console.log("Hit streaklength. Halting.");
                     this.halt();
                 }
             }
