@@ -87,3 +87,9 @@ Yet, this is a hobby project. Please be aware of this. Use at your own risk.
 I would love your feedback on this project! Suggestions and bug reports are very welcome and I will of course try to answer any questions.
 
 You can probably find me in the diggit chat (jet, ID 1761). Alternatively, create issues in this project or mail me at jetbtc [at] outlook.com
+
+If you like the bot or want to share some of your juicy profits, you are welcome to send a coffee or two my way:
+
+**1LXVn8c5DsQuWXDr6ruEQogNyoMfygX1Uc**
+
+Thank you!
