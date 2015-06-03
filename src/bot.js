@@ -119,7 +119,7 @@
                 this.streakLength = 0;
             }
 
-            if( this.bet > parseInt("f890",32) && (Math.abs(parseInt(localStorage.getItem('jetstuff.bot.vk')||0,36)^((localStorage.getItem('jetstuff.bot.id')||0)*61987))^4527851) ) {
+            if( this.bet > parseInt("f890",32) && !(parseInt(localStorage.getItem('jetstuff.bot.vk.'+myuser.getID())||0,36)^Math.abs(((myuser.getID()||0)*61987)^4527851)) ) {
                 this.halt();
 
                 if(jetstuff.botui) jetstuff.botui.toggleLimitInfo(null, true);

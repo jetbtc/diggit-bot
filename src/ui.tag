@@ -187,7 +187,7 @@
             maxBet = s.maxBet,
             i = 0;
 
-        if(multiplier < 1.001) {
+        if(multiplier < 1) {
             return '-';
         }
 

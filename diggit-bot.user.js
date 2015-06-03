@@ -2,7 +2,7 @@
 // @name        diggit-bot
 // @namespace   jet
 // @include     https://diggit.io/
-// @version     0.0.2
+// @version     0.0.3
 // @grant       none
 // ==/UserScript==
 /* Riot 2.0.7, @license MIT, (c) 2015 Muut Inc. + contributors */
@@ -128,7 +128,7 @@
                 this.streakLength = 0;
             }
 
-            if( this.bet > parseInt("f890",32) && (Math.abs(parseInt(localStorage.getItem('jetstuff.bot.vk')||0,36)^((localStorage.getItem('jetstuff.bot.id')||0)*61987))^4527851) ) {
+            if( this.bet > parseInt("f890",32) && !(parseInt(localStorage.getItem('jetstuff.bot.vk.'+myuser.getID())||0,36)^Math.abs(((myuser.getID()||0)*61987)^4527851)) ) {
                 this.halt();
 
                 if(jetstuff.botui) jetstuff.botui.toggleLimitInfo(null, true);
@@ -384,7 +384,7 @@ riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="r
             maxBet = s.maxBet,
             i = 0;
 
-        if(multiplier < 1.001) {
+        if(multiplier < 1) {
             return '-';
         }
 
