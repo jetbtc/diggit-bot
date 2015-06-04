@@ -1,6 +1,6 @@
 {
   "name": "diggit-chathelper",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Automatic betting for diggit.io.",
   "main": "diggit-bot.user.js",
   "scripts": {

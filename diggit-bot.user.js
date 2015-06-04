@@ -2,7 +2,7 @@
 // @name        diggit-bot
 // @namespace   jet
 // @include     https://diggit.io/
-// @version     0.0.5
+// @version     0.0.6
 // @grant       none
 // ==/UserScript==
 /* Riot 2.0.7, @license MIT, (c) 2015 Muut Inc. + contributors */
