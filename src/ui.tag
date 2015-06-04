@@ -70,21 +70,21 @@
                 <div class="col-md-3">
                     <div class="form-group">
                         <label for="jsInitialBet">Start Bet <bot-help text="Your initial bet amount in the unit you selected in the top right of the site."></label>
-                        <input name="jsInitialBet" value="" class="form-control" oninput={ setInitialBet }>
+                        <input name="jsInitialBet" value="1.00" class="form-control" oninput={ setInitialBet }>
                     </div>
                 </div>
 
                 <div class="col-md-3">
                     <div class="form-group">
                         <label for="jsMines">Mines <bot-help text="Number of mines to play with."></label>
-                        <input name="jsMines" value="" class="form-control" oninput={ setMines }>
+                        <input name="jsMines" value="13" class="form-control" oninput={ setMines }>
                     </div>
                 </div>
 
                 <div class="col-md-3">
                     <div class="form-group">
                         <label for="jsPrerolls">Prerolls <bot-help text="Number of games to play with a bet amount of 0 the bot has to lose in a row before starting with the initial bet."></label>
-                        <input name="jsPrerolls" value="" class="form-control" oninput={ setPrerolls }>
+                        <input name="jsPrerolls" value="0" class="form-control" oninput={ setPrerolls }>
                     </div>
                 </div>
 
