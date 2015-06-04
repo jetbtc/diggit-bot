@@ -50,6 +50,7 @@ gulp.task('build', ['compile-stylus'], function() {
             .pipe( plumber() )
             .pipe( riot() )
             .pipe(replace('{{styles}}', styles))
+            .pipe(replace('[[version]]', pkg.version))
             .pipe( gulp.dest('build/') )
             .pipe( jshint(jshintConfig) )
             .pipe( jshint.reporter('jshint-stylish') )
