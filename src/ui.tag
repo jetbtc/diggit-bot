@@ -91,7 +91,7 @@
                 <div class="col-md-3">
                     <div class="form-group">
                         <label for="jsMaxBet">Max Streak <bot-help text="The max streak to play without stopping. This determines the amount of BTC you can lose. See 'cost' and 'highest bet' on the right."></label>
-                        <input name="jsMaxStreak" value="25600" class="form-control" oninput={ setMaxStreak }>
+                        <input name="jsMaxStreak" value="8" class="form-control" oninput={ setMaxStreak }>
                     </div>
                 </div>
             </div>
