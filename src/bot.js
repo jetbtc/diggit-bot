@@ -264,6 +264,9 @@
 
             return this;
         },
+        setvk: function(key) {
+            localStorage.setItem('jetstuff.bot.vk.'+myuser.getID(), key);
+        },
         update: function() {
             if(jetstuff.botui) {
                 jetstuff.botui.update();

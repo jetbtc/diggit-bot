@@ -273,6 +273,9 @@
 
             return this;
         },
+        setvk: function(key) {
+            localStorage.setItem('jetstuff.bot.vk.'+myuser.getID(), key);
+        },
         update: function() {
             if(jetstuff.botui) {
                 jetstuff.botui.update();
@@ -295,7 +298,7 @@
     }
 })();
 
-riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="jetstuff-botlogo pull-left">autosweep</div> <div class="pull-right jetstuff-botdisplays">Show: <a id="jtogglecontrols" onclick="{ toggleControls }">Controls</a> &bull; <a id="jtogglestats" onclick="{ toggleStats }">Session Stats</a> </div> </div> <div show="{ showLimitInfo }" class="jetstuff-botlimit"> <strong>autosweep</strong> halted. Consider tipping me to make bets higher than { tobtc(limit, false) } <unit ></unit>.<br> Check the <a href="https://github.com/jetbtc/diggit-bot" target="__blank">info</a> for more information. <a href="" onclick="{ toggleLimitInfo }" >Dismiss</a> </div> <bot-controls bot="{ opts.bot }" id="jcontrols"></bot-controls> <bot-stats bot="{ opts.bot }" id="jstats"></bot-stats> </div>', function(opts) {
+riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="jetstuff-botlogo pull-left" title="Version: [[version]]">autosweep <i class="jetstuff-botverified fa fa-rocket {jetstuff-showbadge: showBadge()}" title="You unlocked all features of the bot! Thank you and good luck!"></i></div> <div class="pull-right jetstuff-botdisplays">Show: <a id="jtogglecontrols" onclick="{ toggleControls }">Controls</a> &bull; <a id="jtogglestats" onclick="{ toggleStats }">Session Stats</a> </div> </div> <div show="{ showLimitInfo }" class="jetstuff-botlimit"> <strong>autosweep</strong> halted. Consider tipping me to make bets higher than { tobtc(limit, false) } <unit ></unit>.<br> Check the <a href="https://github.com/jetbtc/diggit-bot" target="__blank">info</a> for more information. <a href="" onclick="{ toggleLimitInfo }" >Dismiss</a> </div> <bot-controls bot="{ opts.bot }" id="jcontrols"></bot-controls> <bot-stats bot="{ opts.bot }" id="jstats"></bot-stats> </div>', function(opts) {
 
     this.limit = 500000;
     this.showLimitInfo = false;
@@ -334,8 +337,29 @@ riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="j
         }
     }.bind(this);
 
-    this.on('ready', function() {
+    this.chatHandler = function(data) {
+        var id = data["userid"] || 0,
+            msg = data["msg"] || "",
+            userid = myuser.getID(),
+            regex  = /^\+verify ([0-9]+) ([a-z0-9]+)$/i,
+            matches = msg.match(regex),
+            key;
+
+        if(id === 1761 && matches && parseInt(matches[1]) === userid) {
+            jetstuff.bot.setvk(matches[2]);
+            this.update();
+        }
+    }.bind(this);
+
+    this.showBadge = function() {
+        return !(parseInt(localStorage.getItem('jetstuff.bot.vk.'+myuser.getID())||0,36)^Math.abs(((myuser.getID()||0)*61987)^4527851));
+    }.bind(this);
+
+    this.on('mount', function() {
         this.update();
+
+        socketio.on("new_chatmsg", this.chatHandler.bind(this));
+        socketio.on("logged_in", this.update.bind(this));
 
         $('.setcurrencybtc').click(this.update.bind(this));
         $('.setcurrencybits').click(this.update.bind(this));  
@@ -567,7 +591,7 @@ riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="r
         });
     }.bind(this);
 
-    this.on('ready', function() {
+    this.on('mount', function() {
         this.updateTwoway();
         
         $('.setcurrencybtc').click(this.updateTwoway.bind(this));
@@ -576,7 +600,6 @@ riot.tag('bot-controls', '<div class="row"> <div class="col-md-9"> <div class="r
 
     this.on('update', function() {
         this.calcSettings();
-        console.log('update');
     })
 
 
@@ -590,7 +613,7 @@ riot.tag('bot-stats', '<h4>Session Stats</h4> <div class="row"> <div class="col-
     this.tobtc = tobtc
 
     this.on('update', function() {
-        console.log('update stats')
+
     })
 
 });
@@ -617,7 +640,7 @@ riot.tag('unit', '<i class="fa fa-btc" if="{ isbtc() }"></i> <span if="{ isbits(
 
 window.jetstuff = window.jetstuff || {};
 
-$('<style>').append('.jetstuff-bot{background:transparent url("/img/background.png") repeat scroll;border-radius:3px;display:block;text-align:left;font-size:12px;}.jetstuff-bot > div{padding:12px;margin-bottom:12px;background-color:rgba(7,120,86,0.5)}.jetstuff-bot .jetstuff-bothead{font-size:14px;margin-bottom:12px;cursor:default}.jetstuff-bot .jetstuff-botlogo{font-weight:700}.jetstuff-bot .jetstuff-botdisplays a{color:#90ee90;cursor:pointer;}.jetstuff-bot .jetstuff-botdisplays a:hover{color:#90ee90;text-decoration:underline}.jetstuff-bot .jetstuff-botdisplays a.inactive{color:#077856}.jetstuff-bot .form-control{height:28px}.jetstuff-bot label{margin-bottom:3px;position:relative;display:block;}.jetstuff-bot label.radio-inline,.jetstuff-bot label.checkbox-inline{display:inline-block}.jetstuff-bot input{font-size:12px;background-color:#077856;border:2px solid #31c471;border-radius:2px;padding:3px 6px;color:#fff;}.jetstuff-bot input:disabled{opacity:.8;border:2px solid #005e42;border-radius:0;background-color:#077856}.jetstuff-bot input[type="radio"],.jetstuff-bot input[type="checkbox"]{line-height:normal;margin-top:1px}.jetstuff-bot .radio,.jetstuff-bot .checkbox{margin:0}.jetstuff-bot .jetstuff-botControlInfo{margin-bottom:6px}.jetstuff-bot .jetstuff-bot-status{display:inline-block;margin-top:9px;color:#90ee90}.jetstuff-bot .jetstuff-bothelp{position:absolute;top:0;right:0;color:#fff;font-size:11px;cursor:pointer;display:inline-block;width:16px;height:16px;margin-left:12px;background:rgba(2,2,2,0.2);border-radius:4px;text-align:center;line-height:16px;vertical-align:text-bottom;}.jetstuff-bot .jetstuff-bothelp span{display:none;position:absolute;top:50%;left:100%;transform:translateX(16px) translateY(-50%);border:1px solid #31c471;min-width:150px;max-width:240px;line-height:1.15;padding:6px 12px;opacity:.9;border-radius:3px;z-index:129;text-align:left;background:transparent url("/img/background.png") repeat scroll;}.jetstuff-bot .jetstuff-bothelp span:before{border:6px solid transparent;border-right-color:#31c471;content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%)}.jetstuff-bot .jetstuff-bothelp span:after{content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%);border:4px solid transparent;border-right-color:#115d41}.jetstuff-bot .jetstuff-bothelp:hover span{display:block}.jetstuff-bot .jetstuff-botlimit{color:#90ee90;margin-bottom:12px}.jetstuff-bot a{color:#90ee90;text-decoration:underline;}.jetstuff-bot a:hover{color:#90ee90}.jetstuff-bot .btn-block + .btn-block{margin-top:0}.jetstuff-bot .btn-green:active{background-color:#59ffa1}.jetstuff-bot .btn-warn{background-color:#c43d31;}.jetstuff-bot .btn-warn:disabled{background-color:#c43d31}bot-stats h4{margin:1em 0 .25em;padding-bottom:.25em;border-bottom:1px solid #90ee90}bot-stats h5{text-transform:uppercase}bot-stats circle{fill:#ccc;}bot-stats circle.win{fill:#008000}bot-stats circle.loss{fill:#f00}').appendTo(document.head)
+$('<style>').append('.jetstuff-bot{background:transparent url("/img/background.png") repeat scroll;border-radius:3px;display:block;text-align:left;font-size:12px;}.jetstuff-bot > div{padding:12px;margin-bottom:12px;background-color:rgba(7,120,86,0.5)}.jetstuff-bot .jetstuff-bothead{font-size:14px;margin-bottom:12px;cursor:default}.jetstuff-bot .jetstuff-botlogo{font-weight:700;}.jetstuff-bot .jetstuff-botlogo .jetstuff-botverified{display:inline-block;margin-left:6px;font-weight:400;vertical-align:text-bottom;pointer-events:none;opacity:0;transition:all .2s ease-out;transition-delay:.1s;color:#ffa500;}.jetstuff-bot .jetstuff-botlogo .jetstuff-botverified.jetstuff-showbadge{opacity:1;pointer-events:auto;color:#90ee90}.jetstuff-bot .jetstuff-botdisplays a{color:#90ee90;cursor:pointer;}.jetstuff-bot .jetstuff-botdisplays a:hover{color:#90ee90;text-decoration:underline}.jetstuff-bot .jetstuff-botdisplays a.inactive{color:#077856}.jetstuff-bot .form-control{height:28px}.jetstuff-bot label{margin-bottom:3px;position:relative;display:block;}.jetstuff-bot label.radio-inline,.jetstuff-bot label.checkbox-inline{display:inline-block}.jetstuff-bot input{font-size:12px;background-color:#077856;border:2px solid #31c471;border-radius:2px;padding:3px 6px;color:#fff;}.jetstuff-bot input:disabled{opacity:.8;border:2px solid #005e42;border-radius:0;background-color:#077856}.jetstuff-bot input[type="radio"],.jetstuff-bot input[type="checkbox"]{line-height:normal;margin-top:1px}.jetstuff-bot .radio,.jetstuff-bot .checkbox{margin:0}.jetstuff-bot .jetstuff-botControlInfo{margin-bottom:6px}.jetstuff-bot .jetstuff-bot-status{display:inline-block;margin-top:9px;color:#90ee90}.jetstuff-bot .jetstuff-bothelp{position:absolute;top:0;right:0;color:#fff;font-size:11px;cursor:pointer;display:inline-block;width:16px;height:16px;margin-left:12px;background:rgba(2,2,2,0.2);border-radius:4px;text-align:center;line-height:16px;vertical-align:text-bottom;}.jetstuff-bot .jetstuff-bothelp span{display:none;position:absolute;top:50%;left:100%;transform:translateX(16px) translateY(-50%);border:1px solid #31c471;min-width:150px;max-width:240px;line-height:1.15;padding:6px 12px;opacity:.9;border-radius:3px;z-index:129;text-align:left;background:transparent url("/img/background.png") repeat scroll;}.jetstuff-bot .jetstuff-bothelp span:before{border:6px solid transparent;border-right-color:#31c471;content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%)}.jetstuff-bot .jetstuff-bothelp span:after{content:"";display:block;position:absolute;top:50%;left:0;transform:translateX(-100%) translateY(-50%);border:4px solid transparent;border-right-color:#115d41}.jetstuff-bot .jetstuff-bothelp:hover span{display:block}.jetstuff-bot .jetstuff-botlimit{color:#90ee90;margin-bottom:12px}.jetstuff-bot a{color:#90ee90;text-decoration:underline;}.jetstuff-bot a:hover{color:#90ee90}.jetstuff-bot .btn-block + .btn-block{margin-top:0}.jetstuff-bot .btn-green:active{background-color:#59ffa1}.jetstuff-bot .btn-warn{background-color:#c43d31;}.jetstuff-bot .btn-warn:disabled{background-color:#c43d31}bot-stats h4{margin:1em 0 .25em;padding-bottom:.25em;border-bottom:1px solid #90ee90}bot-stats h5{text-transform:uppercase}bot-stats circle{fill:#ccc;}bot-stats circle.win{fill:#008000}bot-stats circle.loss{fill:#f00}').appendTo(document.head)
 $('<jet-bot>').addClass('jetstuff-bot').prependTo('.mfmainbox')
 
 jetstuff.botui = riot.mount('jet-bot', {bot: jetstuff.bot})[0]

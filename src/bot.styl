@@ -17,6 +17,23 @@
         
     .jetstuff-botlogo
         font-weight 700
+        
+        .jetstuff-botverified
+            display inline-block
+            margin-left 6px
+            font-weight 400
+            vertical-align text-bottom
+            pointer-events none
+            opacity 0
+            transition all 0.2s ease-out
+            transition-delay 0.1s
+            color orange
+            
+            &.jetstuff-showbadge
+                opacity 1
+                pointer-events auto
+                color lightgreen
+            
 
     .jetstuff-botdisplays a
         color lightgreen

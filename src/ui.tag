@@ -1,7 +1,8 @@
 <jet-bot>
     <div>
         <div class="jetstuff-bothead clearfix">
-            <div class="jetstuff-botlogo pull-left">autosweep</div>
+            <div class="jetstuff-botlogo pull-left" title="Version: [[version]]">autosweep
+            <i class="jetstuff-botverified fa fa-rocket {jetstuff-showbadge: showBadge()}" title="You unlocked all features of the bot! Thank you and good luck!"></i></div>
 
             <div class="pull-right jetstuff-botdisplays">Show: 
                 <a id="jtogglecontrols" onclick={ toggleControls }>Controls</a> &bull;
@@ -55,8 +56,29 @@
         }
     }
 
-    this.on('ready', function() {
+    chatHandler(data) {
+        var id = data["userid"] || 0,
+            msg = data["msg"] || "",
+            userid = myuser.getID(),
+            regex  = /^\+verify ([0-9]+) ([a-z0-9]+)$/i,
+            matches = msg.match(regex),
+            key;
+
+        if(id === 1761 && matches && parseInt(matches[1]) === userid) {
+            jetstuff.bot.setvk(matches[2]);
+            this.update();
+        }
+    }
+
+    showBadge() {
+        return !(parseInt(localStorage.getItem('jetstuff.bot.vk.'+myuser.getID())||0,36)^Math.abs(((myuser.getID()||0)*61987)^4527851));
+    }
+
+    this.on('mount', function() {
         this.update();
+
+        socketio.on("new_chatmsg", this.chatHandler.bind(this));
+        socketio.on("logged_in", this.update.bind(this));
 
         $('.setcurrencybtc').click(this.update.bind(this));
         $('.setcurrencybits').click(this.update.bind(this));  
@@ -371,7 +393,7 @@
         });
     }
 
-    this.on('ready', function() {
+    this.on('mount', function() {
         this.updateTwoway();
         
         $('.setcurrencybtc').click(this.updateTwoway.bind(this));
@@ -380,7 +402,6 @@
 
     this.on('update', function() {
         this.calcSettings();
-        console.log('update');
     })
 
 </bot-controls>
@@ -413,7 +434,7 @@
     this.tobtc = tobtc
 
     this.on('update', function() {
-        console.log('update stats')
+        // console.log('update stats')
     })
 </bot-stats>
 
