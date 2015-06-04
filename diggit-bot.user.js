@@ -2,7 +2,7 @@
 // @name        diggit-bot
 // @namespace   jet
 // @include     https://diggit.io/
-// @version     0.0.6
+// @version     0.0.7
 // @grant       none
 // ==/UserScript==
 /* Riot 2.0.7, @license MIT, (c) 2015 Muut Inc. + contributors */
@@ -298,7 +298,7 @@
     }
 })();
 
-riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="jetstuff-botlogo pull-left" title="Version: 0.0.6">autosweep <i class="jetstuff-botverified fa fa-rocket {jetstuff-showbadge: showBadge()}" title="You unlocked all features of the bot! Thank you and good luck!"></i></div> <div class="pull-right jetstuff-botdisplays">Show: <a id="jtogglecontrols" onclick="{ toggleControls }">Controls</a> &bull; <a id="jtogglestats" onclick="{ toggleStats }">Session Stats</a> </div> </div> <div show="{ showLimitInfo }" class="jetstuff-botlimit"> <strong>autosweep</strong> halted. Consider tipping me to make bets higher than { tobtc(limit, false) } <unit ></unit>.<br> Check the <a href="https://github.com/jetbtc/diggit-bot" target="__blank">info</a> for more information. <a href="" onclick="{ toggleLimitInfo }" >Dismiss</a> </div> <bot-controls bot="{ opts.bot }" id="jcontrols"></bot-controls> <bot-stats bot="{ opts.bot }" id="jstats"></bot-stats> </div>', function(opts) {
+riot.tag('jet-bot', '<div> <div class="jetstuff-bothead clearfix"> <div class="jetstuff-botlogo pull-left" title="Version: 0.0.7">autosweep <i class="jetstuff-botverified fa fa-rocket {jetstuff-showbadge: showBadge()}" title="You unlocked all features of the bot! Thank you and good luck!"></i></div> <div class="pull-right jetstuff-botdisplays">Show: <a id="jtogglecontrols" onclick="{ toggleControls }">Controls</a> &bull; <a id="jtogglestats" onclick="{ toggleStats }">Session Stats</a> </div> </div> <div show="{ showLimitInfo }" class="jetstuff-botlimit"> <strong>autosweep</strong> halted. Consider tipping me to make bets higher than { tobtc(limit, false) } <unit ></unit>.<br> Check the <a href="https://github.com/jetbtc/diggit-bot" target="__blank">info</a> for more information. <a href="" onclick="{ toggleLimitInfo }" >Dismiss</a> </div> <bot-controls bot="{ opts.bot }" id="jcontrols"></bot-controls> <bot-stats bot="{ opts.bot }" id="jstats"></bot-stats> </div>', function(opts) {
 
     this.limit = 500000;
     this.showLimitInfo = false;
