@@ -1,4 +1,4 @@
-# autosweep - diggit-bot v0.0.4
+# autosweep - diggit-bot v0.0.5
 
 Automatic betting for https://diggit.io - by jet (#1761 on diggit)
 
