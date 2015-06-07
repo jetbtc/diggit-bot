@@ -35,9 +35,17 @@ Chrome support is **not** official. New versions are not being tested in Chrome 
 
 ### Features
 
-The bot was developed for simple strategies based on the martingale system, so the UI doesn't let you do much more than variations of that as of now. If there is demand for new features, I might add them.
+The bot was developed for **simple strategies based on the martingale system**, so the UI doesn't let you do much more than variations of that **as of now**. If there is demand for new features, I might add them.
 
 **Note:** By default, the bot does not make bets bigger than 0.005BTC/5000 bits. See special features.
+
+**IMPORTANT [8 Jun '15]:** If you set the "Tiles" field to a number to make the bot randomly click tiles, those will be chosen at the **beginning of every streak**, not at the beginning of every individual game! How to play martingale-variations on minesweeper is not exactly well-defined, but it seemed to make more sense to pick a set of tiles and go through with that choice until a streak is finished, instead of choosing new tiles on every game. That would feel like the equivalent of playing martingale on dice-sites while randomly switching between HI and LO.
+
+That design on this specific feature has been questioned quite a bit and has, without a doubt, generated the most feedback on the bot so far. Expect changes.
+
+**FEEDBACK IS VERY WELCOME.** If you have any questions or thoughts on this or anything else related to the bot, please contact me. (See the bottom of this README)
+
+Thank you.
 
 #### Features so far:
 
