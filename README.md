@@ -1,5 +1,7 @@
 # autosweep - diggit-bot v0.0.7
 
+**IMPORTANT: The sites coldwallet and hotwallet have been drained and the admin of the site has been inactive for ages now. Reports have been coming in that withdrawals are not working properly and nobody is taking care of the issue. SADLY, I HAVE TO RECOMMEND AGAINST TRUSTING DIGGIT.IO FOR NOW**
+
 Automatic betting for https://diggit.io - by jet (#1761 on diggit)
 
 ![Preview](preview.png)
